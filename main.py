@@ -152,7 +152,7 @@ def main():
                 # 2. Check how much total data is in the buffer
                 total_samples = mne_raw.n_times
 
-                if total_samples(SFREQ) < SKIP_SECONDS:
+                if total_samples/SFREQ < SKIP_SECONDS:
                     continue
 
                 # 3. Calculate how many NEW samples arrived since last loop
