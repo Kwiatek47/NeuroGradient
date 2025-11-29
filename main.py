@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import pandas as pd
+from scipy.signal import butter, filtfilt, iirnotch
 import collections
 from brainaccess.utils import acquisition
 from brainaccess.core.eeg_manager import EEGManager
@@ -41,6 +42,8 @@ class RealTimeFocus:
         # Data shape is (8, n_samples).
         # axis=0 collapses the 8 channels into 1 average value per sample.
         global_activity = np.mean(np.abs(new_data), axis=0)
+
+        global_activity_filtered = filter_eeg(global_activity)
 
         # 2. Add to buffer (extends the deque with the new 1D array)
         self.buffer.extend(global_activity)
@@ -87,6 +90,29 @@ class RealTimeFocus:
         final_score = (focus_score * 2) - 1
 
         return final_score
+    
+
+def highpass_filter(data, fs, cutoff=1.0, order=4):
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype='high', analog=False)
+    filtered_data = filtfilt(b, a, data)
+    return filtered_data
+
+
+def notch_filter(data, fs, notch_freq=50.0, Q=30.0):
+    nyquist = 0.5 * fs
+    w0 = notch_freq / nyquist  # Normalized frequency
+    b, a = iirnotch(w0, Q)
+    filtered_data = filtfilt(b, a, data)
+    return filtered_data
+
+
+def filter_eeg(eeg_data):
+    # Filter using high pass filter at 1Hz
+    eeg_data = highpass_filter(eeg_data, SFREQ)
+    eeg_data = notch_filter(eeg_data, SFREQ)
+    return eeg_data
 
 
 def send_to_server(score):
