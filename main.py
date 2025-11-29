@@ -1,0 +1,144 @@
+import time
+import numpy as np
+import collections
+from brainaccess.utils import acquisition
+from brainaccess.core.eeg_manager import EEGManager
+
+# --- DEVICE CONFIGURATION ---
+DEVICE_NAME = "BA MINI 048"
+CAP_CHANNELS = {
+    0: "F3", 1: "F4",
+    2: "C3", 3: "C4",
+    4: "P3", 5: "P4",
+    6: "O1", 7: "O2",
+}
+SFREQ = 250
+
+# --- ALGORITHM CONFIGURATION ---
+WINDOW_SECONDS = 30  # Analysis window length
+UPDATE_INTERVAL = 1.0  # How often to calculate new score
+MAX_CHANGE = 0.2  # Smoothing factor
+
+
+class RealTimeFocus:
+    def __init__(self, window_seconds, sfreq):
+        # Circular buffer to hold the last N seconds of data
+        self.buffer_size = int(window_seconds * sfreq)
+        self.buffer = collections.deque(maxlen=self.buffer_size)
+
+        # Dynamic calibration variables
+        self.min_mean_val = float('inf')
+        self.max_mean_val = float('-inf')
+        self.last_focus_value = 0.0
+        self.initialized = False
+
+    def process(self, new_data):
+        """
+        new_data: numpy array (n_samples, n_channels)
+        Returns: score (-1 to 1) or None if buffer is not full
+        """
+        # 1. Calculate the mean absolute amplitude across ALL channels for each sample
+        # Axis 1 = across channels. Result is a 1D array of 'global activity'
+        global_activity = np.mean(np.abs(new_data), axis=1)
+
+        # 2. Add to buffer
+        self.buffer.extend(global_activity)
+
+        # 3. Check for warmup
+        if len(self.buffer) < self.buffer_size:
+            progress = len(self.buffer) / self.buffer_size * 100
+            print(f"Calibrating buffer... {progress:.1f}%", end='\r')
+            return None
+
+        # --- FOCUS ALGORITHM ---
+
+        window_array = np.array(self.buffer)
+
+        # Calculate mean amplitude of the entire window (Noise level)
+        # Higher amplitude/noise usually indicates less focus/more distraction
+        current_mean = np.mean(window_array)
+
+        # Dynamic calibration (Min/Max tracking)
+        if current_mean < self.min_mean_val:
+            self.min_mean_val = current_mean
+        if current_mean > self.max_mean_val:
+            self.max_mean_val = current_mean
+
+        # Normalize relative to session history
+        if self.max_mean_val == self.min_mean_val:
+            norm_val = 0.5
+        else:
+            norm_val = (current_mean - self.min_mean_val) / (self.max_mean_val - self.min_mean_val + 1e-6)
+
+        # Smooth changes
+        if self.initialized:
+            norm_val = np.clip(norm_val,
+                               self.last_focus_value - MAX_CHANGE,
+                               self.last_focus_value + MAX_CHANGE)
+
+        self.last_focus_value = norm_val
+        self.initialized = True
+
+        # Invert and scale to -1..1
+        # norm_val: 0 (silence/focus) -> 1 (noise/distraction)
+        # Output: 0 -> 1 (Focus), 1 -> -1 (Distracted)
+        focus_score = -norm_val * 2 + 1
+
+        return focus_score
+
+
+def send_to_server(score):
+    """
+    Placeholder for SocketIO / HTTP Request.
+    """
+    # Visualization bar
+    bar_len = 20
+    # Map -1..1 to 0..20
+    pos = int((score + 1) / 2 * bar_len)
+    pos = max(0, min(bar_len, pos))  # Clamp safety
+    bar = "[" + "#" * pos + " " * (bar_len - pos) + "]"
+
+    print(f"SENDING DATA >> Port: 5000 | Score: {score:.3f} {bar}")
+
+
+def main():
+    processor = RealTimeFocus(WINDOW_SECONDS, SFREQ)
+
+    eeg = acquisition.EEG()
+    print(f"Attempting to connect to {DEVICE_NAME}...")
+
+    with EEGManager() as mgr:
+        eeg.setup(mgr, device_name=DEVICE_NAME, cap=CAP_CHANNELS, sfreq=SFREQ)
+        eeg.start_acquisition()
+        print("\n--- CONNECTED & STREAMING ---")
+        time.sleep(2)
+
+        try:
+            while True:
+                # 1. Get latest data chunk
+                chunk = eeg.get_data()
+
+                if chunk is not None and len(chunk) > 0:
+                    # 2. Process data
+                    score = processor.process(chunk)
+
+                    # 3. Send if ready
+                    if score is not None:
+                        send_to_server(score)
+
+                time.sleep(UPDATE_INTERVAL)
+
+        except KeyboardInterrupt:
+            print("\nInterrupted by user.")
+        finally:
+            print("Stopping acquisition...")
+            eeg.stop_acquisition()
+            try:
+                mgr.disconnect()
+            except Exception:
+                pass
+            eeg.close()
+
+
+if __name__ == "__main__":
+    main()
