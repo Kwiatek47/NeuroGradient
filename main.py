@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import pandas as pd
 import collections
 from brainaccess.utils import acquisition
 from brainaccess.core.eeg_manager import EEGManager
@@ -102,6 +103,9 @@ def main():
     processor = RealTimeFocus(WINDOW_SECONDS, SFREQ)
     eeg = acquisition.EEG()
 
+    eeg_data = []
+    focus_score_list = []
+
     print(f"Attempting to connect to {DEVICE_NAME}...")
 
     # Track how much data we have already processed
@@ -135,6 +139,9 @@ def main():
                     # 5. Process
                     score = processor.process(new_data)
 
+                    eeg_data.append(new_data)
+                    focus_score_list.append(score)
+
                     if score is not None:
                         send_to_server(score)
 
@@ -150,6 +157,12 @@ def main():
             except Exception:
                 pass
             eeg.close()
+
+        focus_score_df = pd.DataFrame(focus_score_list)
+        eeg_data_df = pd.DataFrame(eeg_data)
+
+        focus_score_df.to_csv("focus_scores.csv")
+        eeg_data_df.to_csv("eeg_data.csv")
 
 
 if __name__ == "__main__":
