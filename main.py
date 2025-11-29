@@ -139,7 +139,6 @@ def main():
                     # 5. Process
                     score = processor.process(new_data)
 
-                    print(new_data.T.shape)
                     eeg_data.extend(new_data.T.tolist())
                     focus_score_list.append(score)
 
