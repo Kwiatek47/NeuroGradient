@@ -1,0 +1,1 @@
+Hackathon BCI Wrocław 2025
