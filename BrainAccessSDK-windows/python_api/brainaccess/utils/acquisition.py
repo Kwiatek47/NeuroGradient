@@ -1,570 +1,156 @@
-import typing
 import time
-import threading
 import numpy as np
-import mne  # type: ignore
-import pathlib
-
-import brainaccess.core as bacore
-import brainaccess.core.eeg_channel as eeg_channel
-from brainaccess.core.gain_mode import GainMode, multiplier_to_gain_mode
+import collections
+from brainaccess.utils import acquisition
 from brainaccess.core.eeg_manager import EEGManager
-from brainaccess.core.impedance_measurement_mode import ImpedanceMeasurementMode
-from brainaccess.core.device_features import DeviceFeatures
-from brainaccess.utils.exceptions import BrainAccessException
+
+# --- DEVICE CONFIGURATION ---
+DEVICE_NAME = "BA MINI 048"
+# We define 8 EEG channels.
+# The device sends 12 channels total (8 EEG + 4 Aux/Accel).
+# We will slice the data to keep only the first 8.
+CAP_CHANNELS = {
+    0: "F3", 1: "F4",
+    2: "C3", 3: "C4",
+    4: "P3", 5: "P4",
+    6: "O1", 7: "O2",
+}
+SFREQ = 250
+
+# --- ALGORITHM CONFIGURATION ---
+WINDOW_SECONDS = 30  # Analysis window length
+UPDATE_INTERVAL = 1.0  # How often to calculate new score
+MAX_CHANGE = 0.2  # Smoothing factor
 
 
+class RealTimeFocus:
+    def __init__(self, window_seconds, sfreq):
+        self.buffer_size = int(window_seconds * sfreq)
+        self.buffer = collections.deque(maxlen=self.buffer_size)
 
-class EEG:
-    """EEG acquisition class.
-    Gathers data from brainaccess core and converts to MNE structure.
-    """
+        self.min_mean_val = float('inf')
+        self.max_mean_val = float('-inf')
+        self.last_focus_value = 0.0
+        self.initialized = False
 
-    def __init__(
-        self,
-        mode: str = "accumulate",
-    ) -> None:
-        """Creates EEG object and initializes device with default parameters.
-
-        Parameters
-        ------------
-        mode: str
-            Data storage modes accumulate (all data is accumulated in array)
-            or roll (only last x seconds preserved)
-
+    def process(self, new_data):
         """
-        self.directory = pathlib.Path.cwd()
-        self.wait_max: int = 2
-        self.time_step: float = 0.5
-        self.impedances: dict = {}
-        self.eeg_channels: dict = {}
-        self.bias_channels: typing.Optional[list] = None
-        self.mode: str = mode
-        self.gain: GainMode = GainMode.X8
-        bacore.init()
-
-    def setup(
-        self,
-        mgr: EEGManager,
-        device_name: str,
-        cap: dict = {
-            0: "F3",
-            1: "F4",
-            2: "C3",
-            3: "C4",
-            4: "P3",
-            5: "P4",
-            6: "O1",
-            7: "O2",
-        },
-        zeros_at_start: int = 0,
-        bias: typing.Optional[list] = None,
-        gain: int = 8,
-        sfreq: int = 250,
-    ) -> None:
-        """Connects to device and sets channels
-
-        Parameters
-        ------------
-        mgr: EEGManager
-            The EEG manager object.
-        device_name: str
-            The name of the device to connect to.
-        cap: dict
-            A dictionary mapping electrode numbers to channel names.
-        zeros_at_start: int
-            The number of zeros to add at the beginning of the data.
-        bias: list, optional
-            A list of channels to use for bias.
-        gain: int
-            The gain to use for the EEG channels.
-
-        Raises
-        ------
-        BrainAccessException
-            If no devices are found, could not connect to the device, or the stream is incompatible.
+        new_data: numpy array (n_samples, n_channels)
         """
-        self.mgr = mgr
-        self.sfreq = sfreq
-        devices = bacore.scan()
-        if len(devices) == 0:
-            self._error("No devices found")
-        self.zeros_at_start = zeros_at_start
-        if bias:
-            self.bias_channels = bias
-        else:
-            self.bias_channels = []
-        if gain in [4, 6, 8, 12]:
-            self.gain = multiplier_to_gain_mode(gain)
-        else:
-            print("Provided gain not supported. Using default 8")
-        start_time = time.time()
-        while time.time() < (start_time + self.wait_max):
-            try:
-                self.conn_error = mgr.connect(device_name)
-                if self.conn_error == 0:
-                    break
-                elif self.conn_error == 2:
-                    raise BrainAccessException(
-                        "Stream is incompatible, update device firmware"
-                    )
-                else:
-                    print("could not connect")
-            except Exception as e:
-                raise BrainAccessException(f"Could not connect to device {e}")
-        else:
-            self._error("Could not connect to Client.")
-        self.eeg_channels = {}
-        self.channels_type: dict = {}
-        self.channels_indexes = {}
-        for electrode, name in cap.items():
-            self.eeg_channels[eeg_channel.ELECTRODE_MEASUREMENT + electrode] = name
-            self.channels_type[eeg_channel.ELECTRODE_MEASUREMENT + electrode] = "EEG"
-            self.channels_indexes[eeg_channel.ELECTRODE_MEASUREMENT + electrode] = 0
-        if self.mgr.is_connected():
-            info = self.mgr.get_device_info()
-            features = DeviceFeatures(info)
-            if features.has_accel():
-                self.eeg_channels[eeg_channel.ACCELEROMETER + 0] = "Accel_x"
-                self.eeg_channels[eeg_channel.ACCELEROMETER + 1] = "Accel_y"
-                self.eeg_channels[eeg_channel.ACCELEROMETER + 2] = "Accel_z"
-                self.channels_type[eeg_channel.ACCELEROMETER + 0] = "ACC"
-                self.channels_type[eeg_channel.ACCELEROMETER + 1] = "ACC"
-                self.channels_type[eeg_channel.ACCELEROMETER + 2] = "ACC"
-                self.channels_indexes[eeg_channel.ACCELEROMETER + 0] = 0
-                self.channels_indexes[eeg_channel.ACCELEROMETER + 1] = 0
-                self.channels_indexes[eeg_channel.ACCELEROMETER + 2] = 0
-        self.eeg_channels[eeg_channel.SAMPLE_NUMBER] = "Sample"
-        self.channels_type[eeg_channel.SAMPLE_NUMBER] = "Sample"
-        self.channels_indexes[eeg_channel.SAMPLE_NUMBER] = 0
-        eeg_info = self._create_info()
-        self.info = eeg_info
-        self.chans = len(self.info.ch_names)
-        if self.mode == "accumulate":
-            self.lock = threading.Lock()
-            self.data: typing.Union[EEGData, EEGData_roll] = EEGData(
-                eeg_info, lock=self.lock, zeros_at_start=zeros_at_start
-            )
-        else:
-            self.lock = threading.Lock()
-            self.data = EEGData_roll(
-                eeg_info, lock=self.lock, zeros_at_start=zeros_at_start
-            )
-
-    def _set_channels(self):
-        """Set the channels to be enabled."""
-        for chan in self.eeg_channels.keys():
-            self.mgr.set_channel_enabled(chan, True)
-
-    def get_battery(self) -> int:
-        """Returns battery level in percent."""
-        res = self.mgr.get_battery_info()
-        return res.level
-
-    def _error(self, extra: str = ""):
-        """Raises error with extra text
-        Parameters
-        ----------
-        extra: str  (Default value = '')
-
-        """
-        raise BrainAccessException(f"{extra}")
-
-    def close(self):
-        """Close device connection."""
-        bacore.close()
-
-    def _start_acquisition(self):
-        """Starts streaming and collecting data"""
-        self._set_channels()
-        for chan in self.bias_channels:
-            self.mgr.set_channel_bias(eeg_channel.ELECTRODE_MEASUREMENT + chan, True)
-        for idx, value in enumerate(list(self.eeg_channels.keys())):
-            if self.channels_type[value] == "EEG":
-                self.mgr.set_channel_gain(value, self.gain)
-        if self.mode == "accumulate":
-            self.mgr.set_callback_chunk(self._acq)
-        else:
-            self.mgr.set_callback_chunk(self._acq_roll)
-        self.mgr.set_sample_rate(self.sfreq)
-        self.mgr.load_config()
+        # 1. Calculate global activity (average across 8 channels)
+        # axis=1 means we average columns (channels) for each row (time sample)
         try:
-            self.mgr.start_stream()
-        except Exception:
-            raise BrainAccessException("Could not start stream")
-        for key in self.channels_indexes.keys():
-            self.channels_indexes[key] = self.mgr.get_channel_index(key)
+            global_activity = np.mean(np.abs(new_data), axis=1)
+        except Exception as e:
+            print(f"Error in math processing: {e}")
+            return None
 
-    def start_acquisition(self):
-        """Starts streaming and collecting data."""
-        self._start_acquisition()
+        # 2. Add to buffer
+        self.buffer.extend(global_activity)
 
-    def _stop_acquisition(self):
-        """Stops the data acquisition stream."""
-        self.mgr.stop_stream()
+        # 3. Check warmup
+        if len(self.buffer) < self.buffer_size:
+            progress = len(self.buffer) / self.buffer_size * 100
+            print(f"Calibrating buffer... {progress:.1f}%", end='\r')
+            return None
 
-    def stop_acquisition(self):
-        """Stops the data acquisition stream."""
-        self._stop_acquisition()
+        # --- FOCUS ALGORITHM ---
+        window_array = np.array(self.buffer)
+        current_mean = np.mean(window_array)
 
-    def get_annotations(self) -> dict:
-        """Returns annotations from the data stream."""
-        self.data.annotations = self.mgr.get_annotations()
-        return self.data.annotations
+        if current_mean < self.min_mean_val:
+            self.min_mean_val = current_mean
+        if current_mean > self.max_mean_val:
+            self.max_mean_val = current_mean
 
-    def annotate(self, msg: str) -> None:
-        """Adds an annotation to the data stream.
-        Parameters
-        ----------
-        msg: str
-            annotation to send
-
-        """
-        self.mgr.annotate(msg)
-
-    def get_mne(
-        self,
-        tim: typing.Optional[float] = None,
-        samples: typing.Optional[int] = None,
-        annotations: bool = True,
-    ) -> mne.io.BaseRaw:
-        """Return MNE structure.
-        If tim is None, returns all data; otherwise, returns the last `tim` seconds.
-
-        Parameters
-        ----------
-        tim: float, optional
-            Time in seconds.
-        samples: int, optional
-            Number of samples.
-        annotations: bool
-            Whether to include annotations.
-
-        Returns
-        -------
-        mne.io.BaseRaw
-            Raw MNE EEG data structure.
-
-        """
-        if annotations:
-            self.get_annotations()
-        self.data.convert_to_mne(
-            tim=tim,
-            samples=samples,
-            channels_indexes=list(self.channels_indexes.values()),
-        )
-        return self.data.mne_raw
-
-    def _acq(self, chunk, chunk_size):
-        """function to acquire data with callback
-        Parameters
-        ----------
-        chunk
-            data chunk from device
-        chunk_size: int
-            size of the chunk
-        """
-        self.data.data.append(np.array(chunk))
-
-    def _acq_roll(self, chunk, chunk_size):
-        """function to acquire fixed size data with callback
-        Parameters
-        ----------
-        chunk
-            data chunk from device
-        chunk_size: int
-            size of the chunk
-        """
-        self.data.data = np.roll(self.data.data, -chunk_size, axis=1)
-        self.data.data[:, -chunk_size:] = np.array(chunk)
-
-    def _create_info(self):
-        """mne info structure creation"""
-        import brainaccess.core.eeg_channel as eeg_channel
-
-        sampling_freq = self.mgr.get_sample_frequency()
-        ch_names = [x for x in self.eeg_channels.values()]
-        sample_channels = len(
-            [
-                x
-                for x in list(self.eeg_channels.keys())
-                if x == eeg_channel.SAMPLE_NUMBER
-            ]
-        )
-        digital_channels = len(
-            [
-                x
-                for x in list(self.eeg_channels.keys())
-                if x == eeg_channel.DIGITAL_INPUT
-            ]
-        )
-        acc_channels = len(
-            [
-                x
-                for x in list(self.eeg_channels.keys())
-                if x >= eeg_channel.ACCELEROMETER
-            ]
-        )
-        non_eeg_channels = sample_channels + digital_channels + acc_channels
-        ch_types = ["eeg"] * int(len(ch_names) - non_eeg_channels)
-        ch_types.extend(["misc"] * acc_channels)
-        ch_types.extend(["stim"] * digital_channels)
-        ch_types.extend(["syst"] * sample_channels)
-        eeg_info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
-        eeg_info.set_montage("standard_1005")
-        return eeg_info
-
-    def start_impedance_measurement(self):
-        """Starts impedance measurement."""
-        self.mgr.set_impedance_mode(ImpedanceMeasurementMode.HZ_31_2)
-        self.bias_channels = []
-        self.start_acquisition()
-
-    def stop_impedance_measurement(self):
-        """Stops impedance measurement."""
-        self.stop_acquisition()
-        self.mgr.set_impedance_mode(ImpedanceMeasurementMode.OFF)
-
-
-class EEGData_roll:
-    """Data structure to store rolling EEG data buffer"""
-
-    def __init__(self, info, lock, zeros_at_start: int = 1):
-        """Initializes the EEGData_roll object.
-
-        Parameters
-        ----------
-        info : mne.Info
-            The MNE info object.
-        lock : threading.Lock
-            The threading lock.
-        zeros_at_start : int, optional
-            The number of zeros to add at the beginning of the data, by default 1.
-
-        Raises
-        ------
-        BrainAccessException
-            If no lock is passed.
-        """
-        if not lock:
-            raise BrainAccessException("No lock passed")
-        self.eeg_info: mne.Info = info
-        self.mne_raw: mne.io.BaseRaw
-        self.chans = len(info.ch_names)
-        self.zeros_at_start = zeros_at_start
-        self.data = np.zeros((self.chans, self.zeros_at_start))
-        self.connectivity: list = []
-        self.annotations: dict = {}
-        self.lock = lock
-
-    def save(self, fname: str):
-        """Saves the raw data to a file.
-        Parameters
-        ------------
-        fname: str
-            filename to save data to
-        """
-        with self.lock:
-            self.mne_raw.save(fname=fname, verbose=False, overwrite=True, fmt="double")
-
-    def load(self, fname: str):
-        """Loads raw data from a file.
-
-        Parameters
-        ----------
-        fname : str
-            The name of the file to load.
-        """
-        self.mne_raw = mne.io.read_raw(fname, verbose=False)
-
-    def convert_to_mne(
-        self,
-        tim: typing.Optional[float] = None,
-        samples: typing.Optional[int] = None,
-        annotations: bool = True,
-        channels_indexes: typing.Optional[list] = None,
-    ):
-        """Convert arrays to MNE.
-        If tim None returns all data from acquisition start.
-        Otherwise last tim seconds
-
-        Parameters
-        ------------
-        tim: float, default value = None
-            time in seconds or samples to cut
-        samples: int, default value = None
-            samples or time to cut
-        annotations: bool, default value = True
-            should annotations be included
-        channels_indexes: list, optional
-            A list of channel indexes to include.
-        """
-        with self.lock:
-            length = len(self.data)
-        if length > 0:
-            if annotations:
-                timestamp_correction = np.block(self.data)[0][0]
-                onset = []
-                description = []
-                for idx, annotation in enumerate(self.annotations["annotations"]):
-                    description.append(annotation)
-                    timestamp = self.annotations["timestamps"][idx]
-                    onset.append(
-                        (timestamp + self.zeros_at_start - timestamp_correction)
-                        / self.eeg_info["sfreq"]
-                    )
-                duration = np.repeat(0, len(onset))
-            if tim:
-                # convert tim to samples
-                tim = int(tim * self.eeg_info["sfreq"])
-                with self.lock:
-                    data = np.array(self.data)  # .reshape(self.chans, -1)
-                    data = data[:, -tim:]
-                # fix annotations
-                if annotations:
-                    onset = [x - tim for x in onset]
-                    duration = np.repeat(0, len(onset))
-            elif samples:
-                with self.lock:
-                    data = np.array(self.data)  # .reshape(self.chans, -1)
-                    data = data[:, -samples:]
-                # fix annotations
-                if annotations:
-                    onset = [x - samples for x in onset]
-                    duration = np.repeat(0, len(onset))
-            else:
-                with self.lock:
-                    data = np.array(self.data)  # .reshape(self.chans, -1)
-            # select right order channels
-            if channels_indexes:
-                data = data[channels_indexes]
-            self.mne_raw = mne.io.RawArray(
-                data,
-                self.eeg_info,
-                verbose=False,
-            )
-            if annotations:
-                annot = mne.Annotations(onset, duration, description)
-                self.mne_raw.set_annotations(annot, verbose=False)
+        if self.max_mean_val == self.min_mean_val:
+            norm_val = 0.5
         else:
-            print("No data to convert to MNE structure")
+            norm_val = (current_mean - self.min_mean_val) / (self.max_mean_val - self.min_mean_val + 1e-6)
+
+        if self.initialized:
+            norm_val = np.clip(norm_val,
+                               self.last_focus_value - MAX_CHANGE,
+                               self.last_focus_value + MAX_CHANGE)
+
+        self.last_focus_value = norm_val
+        self.initialized = True
+
+        # Invert: 0 (silence) -> 1 (Focus), 1 (noise) -> -1 (Distracted)
+        focus_score = -norm_val * 2 + 1
+
+        return focus_score
 
 
-class EEGData:
-    """Object to store EEG data in accumulation mode"""
+def send_to_server(score):
+    # Visualization bar
+    bar_len = 20
+    pos = int((score + 1) / 2 * bar_len)
+    pos = max(0, min(bar_len, pos))
+    bar = "[" + "#" * pos + " " * (bar_len - pos) + "]"
+    print(f"SENDING DATA >> Port: 5000 | Score: {score:.3f} {bar}")
 
-    def __init__(self, info, lock, zeros_at_start: int = 2):
-        """Initializes the EEGData object.
 
-        Parameters
-        ----------
-        info : mne.Info
-            The MNE info object.
-        lock : threading.Lock
-            The threading lock.
-        zeros_at_start : int, optional
-            The number of zeros to add at the beginning of the data, by default 2.
-        """
-        self.eeg_info: mne.Info = info
-        self.mne_raw: mne.io.BaseRaw
-        self.lock = lock
-        chans = len(info.ch_names)
-        self.zeros_at_start = zeros_at_start
-        self.data: list = [np.zeros((chans, self.zeros_at_start))]
-        self.connectivity: list = []
-        self.annotations: dict = {}
+def main():
+    processor = RealTimeFocus(WINDOW_SECONDS, SFREQ)
 
-    def save(self, fname: str):
-        """Saves the raw data to a file.
-        Parameters
-        ------------
-        fname: str
-            filename to save data to
-        """
-        with self.lock:
-            self.mne_raw.save(fname=fname, verbose=False, overwrite=True, fmt="double")
+    eeg = acquisition.EEG()
+    print(f"Attempting to connect to {DEVICE_NAME}...")
 
-    def load(self, fname: str):
-        """Loads raw data from a file.
+    with EEGManager() as mgr:
+        eeg.setup(mgr, device_name=DEVICE_NAME, cap=CAP_CHANNELS, sfreq=SFREQ)
+        eeg.start_acquisition()
+        print("\n--- CONNECTED & STREAMING ---")
+        time.sleep(2)
 
-        Parameters
-        ----------
-        fname : str
-            The name of the file to load.
-        """
-        self.mne_raw = mne.io.read_raw(fname, verbose=False)
+        # Variable to track how much data we have already processed
+        last_processed_samples = 0
 
-    def convert_to_mne(
-        self,
-        tim: typing.Optional[float] = None,
-        samples: typing.Optional[int] = None,
-        annotations: bool = True,
-        channels_indexes: typing.Optional[list] = None,
-    ):
-        """Convert arrays to MNE.
-        If tim None returns all data from acquisition start.
-        Otherwise last tim seconds
+        try:
+            while True:
+                # 1. Get MNE Raw Object (Contains metadata + data)
+                mne_raw = eeg.get_mne()
 
-        Parameters
-        ------------
-        tim: float, default value = None
-            time in seconds till the end to include in the output
-        samples: int, default value = None
-            time in samples till the end to include in the output
-        annotations: bool, default value = True
-            should annotations be included
-        channels_indexes: list, optional
-            A list of channel indexes to include.
-        """
-        with self.lock:
-            _length = len(self.data)
-        if _length > 0:
-            if annotations:
-                timestamp_correction = np.block(self.data)[0][0]
-                onset = []
-                description = []
-                for idx, annotation in enumerate(self.annotations["annotations"]):
-                    description.append(annotation)
-                    timestamp = self.annotations["timestamps"][idx]
-                    onset.append(
-                        (timestamp + self.zeros_at_start - timestamp_correction)
-                        / self.eeg_info["sfreq"]
-                    )
-                duration = np.repeat(0, len(onset))
-            if tim:
-                # convert tim to samples
-                tim = int(tim * self.eeg_info["sfreq"])
-                data = self._concat_data()
-                data = data[:, -tim:]
-                # fix annotations
-                if annotations:
-                    onset = [x - tim for x in onset]
-                    duration = np.repeat(0, len(onset))
-            elif samples:
-                data = self._concat_data()
-                data = data[:, -samples:]
-                # fix annotations
-                if annotations:
-                    onset = [x - samples for x in onset]
-                    duration = np.repeat(0, len(onset))
-            else:
-                data = self._concat_data()
-            # select right order channels
-            if channels_indexes:
-                data = data[channels_indexes]
-            self.mne_raw = mne.io.RawArray(
-                data,
-                self.eeg_info,
-                verbose=False,
-            )
-            if annotations:
-                annot = mne.Annotations(onset, duration, description)
-                self.mne_raw.set_annotations(annot, verbose=False)
-        else:
-            print("No data to convert to MNE structure")
+                # 2. Extract data as Numpy Array
+                # Shape is usually (n_channels, n_total_samples) -> e.g. (12, 5000)
+                full_data = mne_raw.get_data()
 
-    def _concat_data(self):
-        """Concatenates the data blocks."""
-        with self.lock:
-            data = np.block(self.data)
-        return data
+                # 3. Calculate how many NEW samples arrived
+                total_samples = full_data.shape[1]
+                new_samples_count = total_samples - last_processed_samples
+
+                if new_samples_count > 0:
+                    # 4. Extract ONLY new samples and ONLY first 8 channels (EEG)
+                    # We ignore channels 8-11 (Accelerometer/Aux)
+                    new_chunk = full_data[:8, last_processed_samples:]
+
+                    # 5. Transpose to match processor expectation: (n_samples, n_channels)
+                    new_chunk = new_chunk.T
+
+                    # 6. Process
+                    score = processor.process(new_chunk)
+
+                    if score is not None:
+                        send_to_server(score)
+
+                    # Update pointer
+                    last_processed_samples = total_samples
+
+                time.sleep(UPDATE_INTERVAL)
+
+        except KeyboardInterrupt:
+            print("\nInterrupted by user.")
+        except Exception as e:
+            print(f"\nCritical Error: {e}")
+        finally:
+            print("Stopping acquisition...")
+            eeg.stop_acquisition()
+            try:
+                mgr.disconnect()
+            except Exception:
+                pass
+            eeg.close()
+
+
+if __name__ == "__main__":
+    main()

@@ -116,7 +116,7 @@ def main():
         try:
             while True:
                 # 1. Get latest data chunk
-                chunk = eeg.get_data()
+                chunk = eeg.get_mne()
 
                 if chunk is not None and len(chunk) > 0:
                     # 2. Process data
