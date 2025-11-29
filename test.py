@@ -1,183 +1,83 @@
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-from collections import deque
-
-CSV_FILE_PATH = 'eeg_data.csv'
-SAMPLE_RATE = 250
-EPOCH_LENGTH = 1.0
-SKIP_SECONDS = 0
-
-CH_NAMES = ['P3', 'P4', 'F3', 'F4', 'C3', 'C4', 'O1', 'O2']
+import matplotlib.patches as mpatches
+import numpy as np
 
 
-class AdaptiveLogProcessor:
-    def __init__(self):
-        # History of log std values for auto-calibration (120 epochs ~ 2 minutes)
-        self.log_std_history = deque(maxlen=120)
-
-        self.smoothed_score = 0.0
-        self.alpha_smoothing = 0.2
-
-        # COMBO SYSTEM (STRICT)
-        self.focus_streak = 0.0
-        self.streak_bonus_limit = 0.8
-        self.bonus_growth_rate = 0.1
-
-        self.stats = {
-            "final_scores": [],
-            "raw_scores": [],
-            "bonuses": [],
-            "log_noise": [],
-            "timestamps": [],
-            "labels": []
-        }
-
-    def process_epoch(self, epoch_data, timestamp, current_label):
-        # Data Preparation
-        try:
-            numeric_data = epoch_data[CH_NAMES]
-            data_array = np.nan_to_num(numeric_data.to_numpy(dtype=float)).T
-        except (KeyError, ValueError):
-            return 0.0
-
-        # Channel volatility (standard deviation)
-        std_val = np.std(data_array)
-
-        if std_val <= 0: std_val = 1e-9
-
-        log_noise = np.log10(std_val)
-
-        self.log_std_history.append(log_noise)
-
-        # auto calibration and scoring
-        if len(self.log_std_history) < 10:
-            base_score = 0.0
-        else:
-            min_log = np.percentile(self.log_std_history, 5)
-
-            max_log = np.percentile(self.log_std_history, 95)
-
-            if max_log <= min_log:
-                dist_ratio = 1.0
-            else:
-                dist_ratio = (log_noise - min_log) / (max_log - min_log)
-                dist_ratio = max(0.0, min(1.0, dist_ratio))
-
-            # Map to score (-1.0 to 1.0)
-            base_score = 1.0 - (2.0 * dist_ratio)
-
-            # If score is greater than 0.5, we consider it "Almost Silence" and boost it
-            if base_score > 0.5:
-                base_score = 0.5 + (base_score - 0.5) * 1.5
-
-            base_score = max(-1.0, min(1.0, base_score))
-
-        # If score is good, increase combo
-        if base_score > 0.5:
-            self.focus_streak += 1.0  # +1 epoch
-
-        # If score is very low, reset combo
-        elif base_score < -0.2:
-            self.focus_streak = 0.0
-
-        # Otherwise, decay the streak
-        else:
-            self.focus_streak *= 0.8
-
-        current_bonus = min(self.focus_streak * self.bonus_growth_rate, self.streak_bonus_limit)
-
-        if base_score > 0:
-            final_raw = base_score + current_bonus
-        else:
-            final_raw = base_score
-
-        final_raw = max(-1.0, min(1.0, final_raw))
-
-        self.smoothed_score = (final_raw * self.alpha_smoothing) + \
-                              (self.smoothed_score * (1 - self.alpha_smoothing))
-
-        self.stats["final_scores"].append(self.smoothed_score)
-        self.stats["log_noise"].append(log_noise)
-        self.stats["bonuses"].append(current_bonus)
-        self.stats["timestamps"].append(timestamp)
-        self.stats["labels"].append(current_label)
-
-        return self.smoothed_score
+DATA_PATH = "data/eeg_data.csv"
+SKIP_SECONDS = 10
+T = 1/250   # Sample period
+MAX_CHANGE = 0.2
+CHANNEL = 'F4'
+WINDOW_SIZE = 30   # seconds
 
 
 def main():
-    print("--- START ADAPTIVE LOG-VARIANCE ---")
+    df = pd.read_csv(DATA_PATH, index_col="time")
 
-    try:
-        df = pd.read_csv(CSV_FILE_PATH)
-        if 'Label' in df.columns: df.rename(columns={'Label': 'label'}, inplace=True)
-        if 'label' not in df.columns: df['label'] = 'unlabeled'
+    df = df[df.index > SKIP_SECONDS]
 
-        idx_cut = int(SKIP_SECONDS * SAMPLE_RATE)
-        df = df.iloc[idx_cut:].reset_index(drop=True)
+    window_size = int(WINDOW_SIZE / T)  # in number of samples
 
-    except FileNotFoundError:
-        return
+    channel_data = df[CHANNEL]
 
-    processor = AdaptiveLogProcessor()
-    step = int(250 * 1.0)  # 1 second
+    n_windows = len(channel_data) // window_size
 
-    for i in range(0, len(df) - step, step):
-        chunk = df.iloc[i: i + step]
-        timestamp = i / 250.0
-        try:
-            lbl = chunk['label'].mode()[0]
-        except:
-            lbl = 'unlabeled'
+    mean_list = []
+    for idx in range(n_windows):
+        window = channel_data.iloc[idx*window_size:(idx+1)*window_size]
+        window_mean = np.mean(np.abs(window))
 
-        processor.process_epoch(chunk, timestamp, lbl)
+        mean_list.append(window_mean)
 
-    stats = processor.stats
-    times = np.array(stats["timestamps"])
-    final_scores = np.array(stats["final_scores"])
-    log_noise = np.array(stats["log_noise"])
-    labels = np.array(stats["labels"])
-    bonuses = np.array(stats["bonuses"])
+    min_mean_val = mean_list[0]
+    max_mean_val = mean_list[0]
+    focus_values = []
 
-    if len(final_scores) == 0: return
+    for mean_val in mean_list:
+        if mean_val < min_mean_val:
+            min_mean_val = mean_val
+        if mean_val > max_mean_val:
+            max_mean_val = mean_val
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
+        focus_value = (mean_val - min_mean_val) / (max_mean_val - min_mean_val + 1e-6)
+        
+        # Clip if change is too big
+        if len(focus_values) > 0:
+            focus_value = np.clip(focus_value, focus_values[-1]-MAX_CHANGE, focus_values[-1]+MAX_CHANGE)
+        focus_values.append(focus_value)
 
-    label_colors = {
-        'focus': '#d5f5e3', 'distracted': '#fadbd8',
-        'relax': '#d6eaf8', 'unlabeled': '#f2f3f4'
-    }
+    focus_values = -np.array(focus_values) * 2 + 1
 
-    def draw_bg(ax):
-        if len(labels) > 0:
-            start = 0
-            cur = labels[0]
-            for i in range(1, len(labels)):
-                if labels[i] != cur:
-                    c = label_colors.get(cur, 'white')
-                    ax.axvspan(times[start], times[i], color=c, alpha=0.6, lw=0)
-                    cur = labels[i]
-                    start = i
-            c = label_colors.get(cur, 'white')
-            ax.axvspan(times[start], times[-1], color=c, alpha=0.6, lw=0)
+    focus_values = np.repeat(focus_values, window_size)
 
-    draw_bg(ax1)
-    draw_bg(ax2)
+    fig, ax = plt.subplots(figsize=(12, 6))
+    x_len = len(focus_values)
+    ax.plot(df.index[:x_len], focus_values)
 
-    ax1.plot(times, final_scores, color='#27ae60', lw=2.5, label='Focus Score')
-    ax1.plot(times, bonuses, color='#f39c12', ls='--', lw=1.5, label='Combo Bonus')
-    ax1.axhline(0, color='gray', ls='--', alpha=0.5)
-    ax1.legend(loc='upper right')
-    ax1.set_title('End Score (1.0 = Max Focus)')
-    ax1.set_ylim(-1.1, 1.1)
 
-    ax2.plot(times, log_noise, color='#8e44ad', lw=1.5, label='Noise Level (Log Scale)')
-    ax2.set_ylabel('Log(StdDev)')
-    ax2.set_title('Inside Algorithm Noise Level (Lower is Better)')
-    ax2.legend(loc='upper right')
+    # Map each unique label to a color
+    unique_labels = df['Label'].unique()
+    color_map = {label: f'C{i % 10}' for i, label in enumerate(unique_labels)}
 
-    plt.tight_layout()
+    prev_label = None
+    start_idx = None
+
+    for i, (idx, row) in enumerate(df.iterrows()):
+        label = row['Label']
+        if label != prev_label:
+            if prev_label is not None:
+                ax.axvspan(df.index[start_idx], idx, color=color_map[prev_label], alpha=0.2)
+            start_idx = i
+            prev_label = label
+
+    # Fill the last segment
+    if prev_label is not None:
+        ax.axvspan(df.index[start_idx], df.index[-1], color=color_map[prev_label], alpha=0.2)
+
+    patches = [mpatches.Patch(color=color_map[label], alpha=0.2, label=label) for label in unique_labels]
+    ax.legend(handles=patches, title="Label", bbox_to_anchor=(1.01, 1), loc='upper left')
+    ax.set_ylim(-1, 1)
     plt.show()
 
 
