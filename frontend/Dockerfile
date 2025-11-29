@@ -1,10 +1,6 @@
-FROM node:18-alpine
+FROM node:18
 
 WORKDIR /app
-
-# Aktualizacja certyfikatów CA
-RUN apk add --no-cache ca-certificates && \
-    update-ca-certificates
 
 COPY package*.json ./
 RUN npm install
