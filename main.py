@@ -15,8 +15,8 @@ CAP_CHANNELS = {
 SFREQ = 250
 
 # --- ALGORITHM CONFIGURATION ---
-WINDOW_SECONDS = 30  # Analysis window length
-UPDATE_INTERVAL = 1.0  # How often to calculate new score
+WINDOW_SECONDS = 5  # Reduced to 5s for faster responsiveness (30s is very slow for real-time)
+UPDATE_INTERVAL = 0.5  # Check for data every 0.5 seconds
 MAX_CHANGE = 0.2  # Smoothing factor
 
 
@@ -34,14 +34,14 @@ class RealTimeFocus:
 
     def process(self, new_data):
         """
-        new_data: numpy array (n_samples, n_channels)
-        Returns: score (-1 to 1) or None if buffer is not full
+        new_data: numpy array shape (n_channels, n_samples)
         """
         # 1. Calculate the mean absolute amplitude across ALL channels for each sample
-        # Axis 1 = across channels. Result is a 1D array of 'global activity'
-        global_activity = np.mean(np.abs(new_data), axis=1)
+        # Data shape is (8, n_samples).
+        # axis=0 collapses the 8 channels into 1 average value per sample.
+        global_activity = np.mean(np.abs(new_data), axis=0)
 
-        # 2. Add to buffer
+        # 2. Add to buffer (extends the deque with the new 1D array)
         self.buffer.extend(global_activity)
 
         # 3. Check for warmup
@@ -51,26 +51,25 @@ class RealTimeFocus:
             return None
 
         # --- FOCUS ALGORITHM ---
-
         window_array = np.array(self.buffer)
 
-        # Calculate mean amplitude of the entire window (Noise level)
-        # Higher amplitude/noise usually indicates less focus/more distraction
+        # Calculate noise level (Mean Amplitude)
         current_mean = np.mean(window_array)
 
-        # Dynamic calibration (Min/Max tracking)
+        # Dynamic calibration (Auto-ranging)
         if current_mean < self.min_mean_val:
             self.min_mean_val = current_mean
         if current_mean > self.max_mean_val:
             self.max_mean_val = current_mean
 
-        # Normalize relative to session history
-        if self.max_mean_val == self.min_mean_val:
+        # Avoid division by zero
+        range_span = self.max_mean_val - self.min_mean_val
+        if range_span == 0:
             norm_val = 0.5
         else:
-            norm_val = (current_mean - self.min_mean_val) / (self.max_mean_val - self.min_mean_val + 1e-6)
+            norm_val = (current_mean - self.min_mean_val) / range_span
 
-        # Smooth changes
+        # Smooth changes (Low-pass filter)
         if self.initialized:
             norm_val = np.clip(norm_val,
                                self.last_focus_value - MAX_CHANGE,
@@ -79,50 +78,63 @@ class RealTimeFocus:
         self.last_focus_value = norm_val
         self.initialized = True
 
-        # Invert and scale to -1..1
-        # norm_val: 0 (silence/focus) -> 1 (noise/distraction)
-        # Output: 0 -> 1 (Focus), 1 -> -1 (Distracted)
-        focus_score = -norm_val * 2 + 1
+        # Invert: Higher Amplitude (Noise) = Lower Focus
+        # Output: 0.0 to 1.0 (where 1.0 is max focus)
+        focus_score = 1.0 - norm_val
 
-        return focus_score
+        # Remap to -1 (distracted) to 1 (focused)
+        final_score = (focus_score * 2) - 1
+
+        return final_score
 
 
 def send_to_server(score):
-    """
-    Placeholder for SocketIO / HTTP Request.
-    """
     # Visualization bar
     bar_len = 20
     # Map -1..1 to 0..20
     pos = int((score + 1) / 2 * bar_len)
-    pos = max(0, min(bar_len, pos))  # Clamp safety
+    pos = max(0, min(bar_len, pos))
     bar = "[" + "#" * pos + " " * (bar_len - pos) + "]"
-
-    print(f"SENDING DATA >> Port: 5000 | Score: {score:.3f} {bar}")
+    print(f"SCORE: {score:.3f} {bar}")
 
 
 def main():
     processor = RealTimeFocus(WINDOW_SECONDS, SFREQ)
-
     eeg = acquisition.EEG()
+
     print(f"Attempting to connect to {DEVICE_NAME}...")
+
+    # Track how much data we have already processed
+    processed_samples = 0
 
     with EEGManager() as mgr:
         eeg.setup(mgr, device_name=DEVICE_NAME, cap=CAP_CHANNELS, sfreq=SFREQ)
         eeg.start_acquisition()
         print("\n--- CONNECTED & STREAMING ---")
-        time.sleep(2)
+        time.sleep(2)  # Wait for buffer to fill a bit
 
         try:
             while True:
-                # 1. Get latest data chunk
-                chunk = eeg.get_mne()
+                # 1. Get the Raw MNE Object
+                mne_raw = eeg.get_mne()
 
-                if chunk is not None and len(chunk) > 0:
-                    # 2. Process data
-                    score = processor.process(chunk)
+                # 2. Check how much total data is in the buffer
+                total_samples = mne_raw.n_times
 
-                    # 3. Send if ready
+                # 3. Calculate how many NEW samples arrived since last loop
+                new_sample_count = total_samples - processed_samples
+
+                if new_sample_count > 0:
+                    # 4. Extract ONLY the new data
+                    # get_data(start=X) gives us data from index X to the end
+                    new_data = mne_raw.get_data(start=processed_samples)
+
+                    # Update our counter so we don't process this data again
+                    processed_samples = total_samples
+
+                    # 5. Process
+                    score = processor.process(new_data)
+
                     if score is not None:
                         send_to_server(score)
 
