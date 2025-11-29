@@ -20,7 +20,6 @@ SFREQ = 250
 WINDOW_SECONDS = 5  # Reduced to 5s for faster responsiveness (30s is very slow for real-time)
 UPDATE_INTERVAL = 0.5  # Check for data every 0.5 seconds
 MAX_CHANGE = 0.2  # Smoothing factor
-SKIP_SECONDS = 10 # Number of seconds to skip in the beggining
 
 
 class RealTimeFocus:
@@ -44,10 +43,8 @@ class RealTimeFocus:
         # axis=0 collapses the 8 channels into 1 average value per sample.
         global_activity = np.mean(np.abs(new_data), axis=0)
 
-        global_activity_filtered = filter_eeg(global_activity)
-
         # 2. Add to buffer (extends the deque with the new 1D array)
-        self.buffer.extend(global_activity_filtered)
+        self.buffer.extend(global_activity)
 
         # 3. Check for warmup
         if len(self.buffer) < self.buffer_size:
@@ -91,29 +88,6 @@ class RealTimeFocus:
         final_score = (focus_score * 2) - 1
 
         return final_score
-    
-
-def highpass_filter(data, fs, cutoff=1.0, order=4):
-    nyquist = 0.5 * fs
-    normal_cutoff = cutoff / nyquist
-    b, a = butter(order, normal_cutoff, btype='high', analog=False)
-    filtered_data = filtfilt(b, a, data)
-    return filtered_data
-
-
-def notch_filter(data, fs, notch_freq=50.0, Q=30.0):
-    nyquist = 0.5 * fs
-    w0 = notch_freq / nyquist  # Normalized frequency
-    b, a = iirnotch(w0, Q)
-    filtered_data = filtfilt(b, a, data)
-    return filtered_data
-
-
-def filter_eeg(eeg_data):
-    # Filter using high pass filter at 1Hz
-    eeg_data = highpass_filter(eeg_data, SFREQ)
-    eeg_data = notch_filter(eeg_data, SFREQ)
-    return eeg_data
 
 
 def send_to_server(score):
@@ -151,9 +125,6 @@ def main():
 
                 # 2. Check how much total data is in the buffer
                 total_samples = mne_raw.n_times
-
-                if total_samples/SFREQ < SKIP_SECONDS:
-                    continue
 
                 # 3. Calculate how many NEW samples arrived since last loop
                 new_sample_count = total_samples - processed_samples
