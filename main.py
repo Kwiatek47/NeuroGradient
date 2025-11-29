@@ -131,7 +131,7 @@ def main():
                 if new_sample_count > 0:
                     # 4. Extract ONLY the new data
                     # get_data(start=X) gives us data from index X to the end
-                    new_data = mne_raw.get_data(start=processed_samples)
+                    new_data = mne_raw.get_data()
 
                     # Update our counter so we don't process this data again
                     processed_samples = total_samples
@@ -139,7 +139,8 @@ def main():
                     # 5. Process
                     score = processor.process(new_data)
 
-                    eeg_data.append(new_data)
+                    print(new_data.T.shape)
+                    eeg_data.extend(new_data.T.tolist())
                     focus_score_list.append(score)
 
                     if score is not None:
@@ -158,6 +159,7 @@ def main():
                 pass
             eeg.close()
 
+        #print(eeg_data)
         focus_score_df = pd.DataFrame(focus_score_list)
         eeg_data_df = pd.DataFrame(eeg_data)
 
