@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { margin: 0; background: #ffe4e1; overflow: hidden; display: flex; justify-content: center; align-items: flex-end; height: 100vh; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 20px; left: 20px; font-family: sans-serif; color: #555; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h1>Neuro Tree</h1>
+        <p>Ruszaj myszką lewo/prawo, aby zmienić FOCUS</p>
+        <p>Focus: <span id="val">0</span>%</p>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        // --- SYMULACJA DANYCH EEG ---
+        let focusLevel = 0; // 0.0 do 1.0
+        let currentTreeSize = 0; // Do płynnej animacji
+
+        // Lista spadających liści
+        let fallingLeaves = [];
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- RYSOWANIE DRZEWA (Rekurencja) ---
+        function drawBranch(len, thickness) {
+            // Rysujemy gałąź
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -len);
+            ctx.strokeStyle = '#4a3728'; // Brązowy
+            ctx.lineWidth = thickness;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Przesuwamy "pióro" na koniec gałęzi
+            ctx.translate(0, -len);
+
+            // Warunek końcowy: Jeśli gałąź jest krótka, to koniec rekurencji
+            if (len > 10) {
+                // Kąt rozgałęzienia zależy od FOCUSU (im większy, tym drzewo szersze)
+                let angle = 20 + (focusLevel * 15);
+
+                // Prawa gałąź
+                ctx.save();
+                ctx.rotate(angle * Math.PI / 180);
+                // Skracamy kolejną gałąź (0.7 to współczynnik skracania)
+                drawBranch(len * 0.7, thickness * 0.7);
+                ctx.restore();
+
+                // Lewa gałąź
+                ctx.save();
+                ctx.rotate(-angle * Math.PI / 180);
+                drawBranch(len * 0.7, thickness * 0.7);
+                ctx.restore();
+            } else {
+                // --- RYSOWANIE LIŚCI/KWIATÓW NA KOŃCACH ---
+                // Tylko jeśli skupienie jest wysokie (> 0.5)
+                if (focusLevel > 0.3) {
+                    let flowerSize = (focusLevel - 0.3) * 10; // Rozmiar zależy od skupienia
+                    ctx.fillStyle = `rgba(255, 105, 180, ${focusLevel})`; // Różowy z przezroczystością
+                    ctx.beginPath();
+                    ctx.arc(0, 0, flowerSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // --- OPADANIE LIŚCI (FIZYKA) ---
+        function spawnLeaf() {
+            fallingLeaves.push({
+                x: width/2 + (Math.random() - 0.5) * 300, // Losowa pozycja startowa u góry
+                y: height - (currentTreeSize * 0.8), // Startuje z korony drzewa
+                size: Math.random() * 5 + 3,
+                speedY: Math.random() * 2 + 1,
+                sway: Math.random() * 0.1,
+                angle: 0
+            });
+        }
+
+        function drawFallingLeaves() {
+            for (let i = fallingLeaves.length - 1; i >= 0; i--) {
+                let l = fallingLeaves[i];
+                l.y += l.speedY;
+                l.x += Math.sin(l.y * 0.05) * 2; // Kołysanie na wietrze
+                l.angle += 0.1;
+
+                ctx.save();
+                ctx.translate(l.x, l.y);
+                ctx.rotate(l.angle);
+                ctx.fillStyle = '#ffb7c5'; // Jasny róż (płatki)
+                ctx.beginPath();
+                // Rysowanie kształtu płatka (łezka)
+                ctx.ellipse(0, 0, l.size, l.size/2, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.restore();
+
+                // Usuń jak spadnie
+                if (l.y > height) fallingLeaves.splice(i, 1);
+            }
+        }
+
+        // --- PĘTLA GŁÓWNA ---
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Płynne dążenie rozmiaru drzewa do poziomu skupienia
+            let targetSize = 100 + (focusLevel * 100); // Min 100px, Max 200px
+            currentTreeSize += (targetSize - currentTreeSize) * 0.05;
+
+            // Rysowanie drzewa
+            ctx.save();
+            ctx.translate(width / 2, height); // Środek dołu ekranu
+            drawBranch(currentTreeSize, 15);
+            ctx.restore();
+
+            // Obsługa spadania
+            drawFallingLeaves();
+
+            requestAnimationFrame(animate);
+        }
+
+        // Symulacja myszką
+        window.addEventListener('mousemove', (e) => {
+            // Zamiana pozycji X myszy na procenty (0.0 - 1.0)
+            let percent = e.clientX / width;
+            focusLevel = percent;
+
+            // Jeśli focus spada gwałtownie, generuj liście
+            // (Tutaj prosty random dla efektu)
+            if (Math.random() > focusLevel + 0.5) {
+                spawnLeaf();
+            }
+
+            document.getElementById('val').innerText = Math.round(focusLevel * 100);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
