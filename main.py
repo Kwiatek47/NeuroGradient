@@ -20,6 +20,7 @@ SFREQ = 250
 WINDOW_SECONDS = 5  # Reduced to 5s for faster responsiveness (30s is very slow for real-time)
 UPDATE_INTERVAL = 0.5  # Check for data every 0.5 seconds
 MAX_CHANGE = 0.2  # Smoothing factor
+SKIP_SECONDS = 10 # Number of seconds to skip in the beggining
 
 
 class RealTimeFocus:
@@ -46,7 +47,7 @@ class RealTimeFocus:
         global_activity_filtered = filter_eeg(global_activity)
 
         # 2. Add to buffer (extends the deque with the new 1D array)
-        self.buffer.extend(global_activity)
+        self.buffer.extend(global_activity_filtered)
 
         # 3. Check for warmup
         if len(self.buffer) < self.buffer_size:
