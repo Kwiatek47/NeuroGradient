@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-function IntroScreen({ onComplete, introMusic, breathingEnabled, breathingDuration = 60, shopItems = [] }) {
+function IntroScreen({ onComplete, introMusic, breathingEnabled, breathingDuration = 60, shopItems = [], isLowFocusReturn = false }) {
   const [phase, setPhase] = useState('inhale'); // inhale, hold1, exhale, hold2
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState(breathingDuration);
@@ -186,7 +186,7 @@ function IntroScreen({ onComplete, introMusic, breathingEnabled, breathingDurati
           fontWeight: 700,
           color: '#87AE73'
         }}>
-          Przygotuj się do sesji
+          {isLowFocusReturn ? 'Zrób sobie chwilę przerwy' : 'Przygotuj się do sesji'}
         </h1>
         
         {breathingEnabled && (

@@ -178,6 +178,79 @@ function FocusChart({ history }) {
   );
 }
 
+// Funkcja generująca mock dane dla listopada 2024 w stylu GitHub contribution graph
+function generateNovemberMockData() {
+  const year = 2024;
+  const month = 10; // Listopad (0-indexed, więc 10 = listopad)
+  const daysInNovember = 30;
+  const mockData = {};
+  
+  // Wzorzec aktywności - niektóre dni z aktywnością, niektóre bez
+  // Poziomy: 0 = brak, 1 = <15 min, 2 = 15-30 min, 3 = 30-60 min, 4 = 60+ min
+  const activityPattern = [
+    0, 2, 3, 1, 0, 4, 2,  // 1-7 listopada
+    3, 2, 1, 0, 2, 3, 4,  // 8-14 listopada
+    2, 1, 0, 3, 4, 2, 1,  // 15-21 listopada
+    0, 2, 3, 1, 4, 3, 2,  // 22-28 listopada
+    1, 0, 2               // 29-30 listopada
+  ];
+  
+  for (let day = 1; day <= daysInNovember; day++) {
+    const activityLevel = activityPattern[day - 1];
+    
+    if (activityLevel > 0) {
+      // Generuj sesje dla dnia z aktywnością
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const sessions = [];
+      
+      // Określ całkowity czas trwania w sekundach na podstawie poziomu aktywności
+      // Używamy deterministycznego generatora opartego na dniu, żeby dane były spójne
+      const seed = day * 17 + activityLevel * 7; // Deterministyczny seed
+      let totalMinutes;
+      switch(activityLevel) {
+        case 1: totalMinutes = 5 + (seed % 10); break; // 5-14 min
+        case 2: totalMinutes = 15 + (seed % 15); break; // 15-29 min
+        case 3: totalMinutes = 30 + (seed % 30); break; // 30-59 min
+        case 4: totalMinutes = 60 + (seed % 60); break; // 60-119 min
+        default: totalMinutes = 0;
+      }
+      
+      // Podziel czas na 1-3 sesje (deterministycznie)
+      const numSessions = 1 + (seed % 3);
+      const sessionDurations = [];
+      
+      if (numSessions === 1) {
+        sessionDurations.push(totalMinutes * 60); // w sekundach
+      } else if (numSessions === 2) {
+        const first = Math.floor(totalMinutes * 60 * 0.6);
+        sessionDurations.push(first, totalMinutes * 60 - first);
+      } else {
+        const first = Math.floor(totalMinutes * 60 * 0.4);
+        const second = Math.floor(totalMinutes * 60 * 0.35);
+        sessionDurations.push(first, second, totalMinutes * 60 - first - second);
+      }
+      
+      // Utwórz sesje z losowymi czasami w ciągu dnia
+      let currentTime = new Date(year, month, day, 9, 0, 0).getTime(); // Start o 9:00
+      
+      sessionDurations.forEach((duration, index) => {
+        const startTime = currentTime + (index * 2 * 60 * 60 * 1000); // Co 2 godziny między sesjami
+        const endTime = startTime + duration * 1000;
+        
+        sessions.push({
+          startTime: startTime,
+          duration: duration,
+          endTime: endTime
+        });
+      });
+      
+      mockData[dateKey] = sessions;
+    }
+  }
+  
+  return mockData;
+}
+
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -206,7 +279,7 @@ function App() {
   const [activeMusic, setActiveMusic] = useState(null); // aktywna muzyka
   const [activeTreeView, setActiveTreeView] = useState('default'); // aktywny widok drzewa
   const [activeBoosts, setActiveBoosts] = useState([]); // aktywne boostery
-  const [activeAtmosphere, setActiveAtmosphere] = useState([]); // aktywna atmosfera
+  const [activeAtmosphere, setActiveAtmosphere] = useState(null); // aktywna atmosfera (tylko jedna)
   const [activeShopTab, setActiveShopTab] = useState('music'); // aktywna zakładka w sklepie
   const audioRef = useRef(null); // referencja do elementu audio (muzyka)
   const atmosphereAudioRef = useRef(null); // referencja do elementu audio (atmosfera)
@@ -217,7 +290,21 @@ function App() {
   const [sessionsHistory, setSessionsHistory] = useState(() => {
     // Ładowanie historii sesji z localStorage
     const saved = localStorage.getItem('sessionsHistory');
-    return saved ? JSON.parse(saved) : {};
+    let history = saved ? JSON.parse(saved) : {};
+    
+    // Generuj mock dane dla listopada 2024 jeśli nie istnieją
+    const november2024 = generateNovemberMockData();
+    // Dodaj tylko te dni, które jeszcze nie istnieją w historii
+    Object.keys(november2024).forEach(dateKey => {
+      if (!history[dateKey]) {
+        history[dateKey] = november2024[dateKey];
+      }
+    });
+    
+    // Zapisz zaktualizowaną historię
+    localStorage.setItem('sessionsHistory', JSON.stringify(history));
+    
+    return history;
   });
   const [achievements, setAchievements] = useState(() => {
     // Ładowanie osiągnięć z localStorage
@@ -253,6 +340,7 @@ function App() {
   const [showSessionSummary, setShowSessionSummary] = useState(false);
   const [sessionSummaryData, setSessionSummaryData] = useState(null);
   const [showIntro, setShowIntro] = useState(false);
+  const [isLowFocusReturn, setIsLowFocusReturn] = useState(false);
   const introAudioRef = useRef(null);
   const [blockedUrls, setBlockedUrls] = useState(() => {
     const saved = localStorage.getItem('blockedUrls');
@@ -305,29 +393,20 @@ function App() {
   // Definicja przedmiotów sklepu - użyj useMemo aby uniknąć problemów z useEffect
   const shopItems = useMemo(() => [
     // Muzyka do skupienia
-    { id: 'music1', category: 'music', name: 'Muzyka klasyczna', price: 80, icon: '🎵', description: 'Spokojna muzyka klasyczna dla lepszego skupienia', effect: 'focus+10%', audioPath: '/music/muzyka-klasyczna.mp3' },
-    { id: 'music2', category: 'music', name: 'Dźwięki natury', price: 100, icon: '🌿', description: 'Odgłosy lasu i natury dla głębokiego flow', effect: 'flow+15%', audioPath: '/music/dzwieki-natury.mp3' },
-    { id: 'music3', category: 'music', name: 'Binaural beats', price: 150, icon: '🧠', description: 'Fale mózgowe dla maksymalnej koncentracji', effect: 'focus+20%', audioPath: '/music/binaural-beats.mp3' },
-    { id: 'music4', category: 'music', name: 'Ambient space', price: 120, icon: '🌌', description: 'Kosmiczne dźwięki dla kreatywnego flow', effect: 'creativity+15%', audioPath: '/music/ambient-space.mp3' },
+    { id: 'music1', category: 'music', name: 'Muzyka klasyczna', price: 80, icon: '🎵', description: 'Spokojna muzyka klasyczna dla lepszego skupienia', audioPath: '/music/muzyka-klasyczna.mp3' },
+    { id: 'music2', category: 'music', name: 'Dźwięki natury', price: 100, icon: '🌿', description: 'Odgłosy lasu i natury dla głębokiego flow', audioPath: '/music/dzwieki-natury.mp3' },
+    { id: 'music3', category: 'music', name: 'Binaural beats', price: 150, icon: '🧠', description: 'Fale mózgowe dla maksymalnej koncentracji', audioPath: '/music/binaural-beats.mp3' },
+    { id: 'music4', category: 'music', name: 'Ambient space', price: 120, icon: '🌌', description: 'Kosmiczne dźwięki dla kreatywnego flow', audioPath: '/music/ambient-space.mp3' },
     
     // Widoki drzewa
     { id: 'view1', category: 'view', name: 'Zwykłe drzewo', price: 0, icon: '🌳', description: 'Klasyczny widok drzewa', effect: 'visual', treeType: 'normal' },
     { id: 'view2', category: 'view', name: 'Choinka', price: 100, icon: '🎄', description: 'Świąteczna choinka z ozdobami', effect: 'visual', treeType: 'christmas' },
     { id: 'view3', category: 'view', name: 'Kwitnąca wiśnia', price: 120, icon: '🌸', description: 'Delikatne kwiaty wiśni', effect: 'visual', treeType: 'cherry' },
     
-    // Boostery do skupienia
-    { id: 'boost1', category: 'boost', name: 'Booster skupienia', price: 80, icon: '⚡', description: '+20% do tempa wzrostu przez 30 min', effect: 'growth+20%' },
-    { id: 'boost2', category: 'boost', name: 'Eliksir flow', price: 150, icon: '🧪', description: 'Podwaja tempo wzrostu przez 1 godzinę', effect: 'growth+100%' },
-    { id: 'boost3', category: 'boost', name: 'Kapsuła czasu', price: 200, icon: '⏰', description: 'Zwiększa czas efektywnej nauki o 25%', effect: 'time+25%' },
-    
     // Atmosfera
     { id: 'atmo1', category: 'atmosphere', name: 'Światło świec', price: 60, icon: '🕯️', description: 'Ciepłe światło świec dla relaksu', effect: 'relax+10%' },
     { id: 'atmo2', category: 'atmosphere', name: 'Deszcz za oknem', price: 70, icon: '🌧️', description: 'Relaksujący dźwięk deszczu', effect: 'focus+12%' },
     { id: 'atmo3', category: 'atmosphere', name: 'Kominek', price: 90, icon: '🔥', description: 'Przytulna atmosfera kominka', effect: 'comfort+15%', audioPath: '/music/fireplace_sound.wav' },
-    
-    // Powiadomienia i przypomnienia
-    { id: 'notif1', category: 'notification', name: 'Mądre przypomnienia', price: 50, icon: '🔔', description: 'Inteligentne przypomnienia o przerwach', effect: 'reminders' },
-    { id: 'notif2', category: 'notification', name: 'Motywacyjne cytaty', price: 40, icon: '💬', description: 'Inspirujące cytaty podczas nauki', effect: 'motivation' },
     
     // Drzewa do obsadzenia na mapie
     { id: 'tree1', category: 'tree', name: 'Zwykłe drzewo', price: 50, icon: '🌳', description: 'Klasyczne drzewo do obsadzenia', effect: 'dekoracja', treeType: 'normal' },
@@ -360,16 +439,8 @@ function App() {
         localStorage.setItem('ownedItems', JSON.stringify(newOwnedItems));
       }
       
-      // Aktywuj przedmiot automatycznie po zakupie
-      if (item.category === 'music') {
-        setActiveMusic(item.id);
-      } else if (item.category === 'view') {
-        setActiveTreeView(item.id);
-      } else if (item.category === 'boost') {
-        setActiveBoosts([...activeBoosts, item.id]);
-      } else if (item.category === 'atmosphere' || item.category === 'notification') {
-        setActiveAtmosphere([...activeAtmosphere, item.id]);
-      } else if (item.category === 'tree') {
+      // Nie aktywuj przedmiotu automatycznie po zakupie - użytkownik może to zrobić ręcznie
+      if (item.category === 'tree') {
         // Dla drzew - ustaw jako wybrane do obsadzenia
         setSelectedTreeType(item.treeType);
       }
@@ -406,9 +477,7 @@ function App() {
         setActiveBoosts([...activeBoosts, item.id]);
       }
     } else if (item.category === 'atmosphere' || item.category === 'notification') {
-      if (!activeAtmosphere.includes(item.id)) {
-        setActiveAtmosphere([...activeAtmosphere, item.id]);
-      }
+      setActiveAtmosphere(item.id);
     }
   };
 
@@ -420,7 +489,7 @@ function App() {
     } else if (category === 'boost') {
       setActiveBoosts(activeBoosts.filter(id => id !== itemId));
     } else if (category === 'atmosphere' || category === 'notification') {
-      setActiveAtmosphere(activeAtmosphere.filter(id => id !== itemId));
+      setActiveAtmosphere(null);
     }
   };
 
@@ -531,12 +600,12 @@ function App() {
     if (atmosphereAudioRef.current) {
       // Znajdź pierwszą aktywną atmosferę z audioPath
       const atmosphereItem = shopItems.find(item => 
-        activeAtmosphere.includes(item.id) && item.audioPath
+        activeAtmosphere === item.id && item.audioPath
       );
       
       if (atmosphereItem && atmosphereItem.audioPath) {
         console.log('Odtwarzanie atmosfery:', atmosphereItem.name, atmosphereItem.audioPath);
-        console.log('Aktywne atmosfery:', activeAtmosphere);
+        console.log('Aktywna atmosfera:', activeAtmosphere);
         
         // Użyj process.env.PUBLIC_URL jeśli jest dostępny, w przeciwnym razie użyj ścieżki względnej
         const audioPath = atmosphereItem.audioPath.startsWith('/') 
@@ -701,12 +770,14 @@ function App() {
 
   const startActivity = () => {
     // Najpierw pokaż intro
+    setIsLowFocusReturn(false);
     setShowIntro(true);
   };
   
   const handleLowFocus = () => {
     // Gdy wykryto długotrwały brak skupienia, pokaż intro z ćwiczeniami oddechowymi
     setIsActive(false);
+    setIsLowFocusReturn(true);
     setShowIntro(true);
     console.log('⚠️ Długotrwały brak skupienia wykryty - powrót do ćwiczeń oddechowych');
   };
@@ -714,6 +785,7 @@ function App() {
   const handleIntroComplete = async () => {
     // Po zakończeniu intro rozpocznij właściwą sesję
     setShowIntro(false);
+    setIsLowFocusReturn(false);
     setIsActive(true);
     setIsPaused(false);
     setSessionStartTime(Date.now());
@@ -1054,8 +1126,8 @@ function App() {
         ☰
       </button>
 
-      {/* Wyświetlacz aktywnych efektów - tylko muzyka i boostery */}
-      {(activeMusic || activeBoosts.length > 0) && (
+      {/* Wyświetlacz aktywnych efektów - tylko muzyka */}
+      {activeMusic && (
         <div className="active-effects">
           <div className="active-effects-content">
             {activeMusic && (
@@ -1078,25 +1150,6 @@ function App() {
               </div>
             )}
 
-            {activeBoosts.map(boostId => {
-              const boost = shopItems.find(item => item.id === boostId);
-              if (!boost) return null;
-              return (
-                <div key={boostId} className="effect-item">
-                  <span className="effect-icon">{boost.icon}</span>
-                  <div className="effect-info">
-                    <div className="effect-name">{boost.name}</div>
-                  </div>
-                  <button 
-                    className="effect-remove-btn"
-                    onClick={() => deactivateItem(boostId, 'boost')}
-                    title="Wyłącz"
-                  >
-                    ×
-                  </button>
-                </div>
-              );
-            })}
           </div>
         </div>
       )}
@@ -1195,12 +1248,6 @@ function App() {
               Widoki
             </button>
             <button 
-              className={`shop-tab ${activeShopTab === 'boosts' ? 'active' : ''}`} 
-              onClick={() => setActiveShopTab('boosts')}
-            >
-              Boostery
-            </button>
-            <button 
               className={`shop-tab ${activeShopTab === 'atmosphere' ? 'active' : ''}`} 
               onClick={() => setActiveShopTab('atmosphere')}
             >
@@ -1234,7 +1281,7 @@ function App() {
                       {isOwned ? (
                         <button 
                           className={`shop-buy-btn ${isActive ? 'active-btn' : 'use-btn'}`}
-                          onClick={() => activateItem(item)}
+                          onClick={() => isActive ? deactivateItem(item.id, 'music') : activateItem(item)}
                         >
                           {isActive ? '✓ Aktywna' : 'Użyj'}
                         </button>
@@ -1280,7 +1327,7 @@ function App() {
                       {isOwned ? (
                         <button 
                           className={`shop-buy-btn ${isActive ? 'active-btn' : 'use-btn'}`}
-                          onClick={() => activateItem(item)}
+                          onClick={() => isActive ? deactivateItem(item.id, 'view') : activateItem(item)}
                         >
                           {isActive ? '✓ Aktywny' : 'Użyj'}
                         </button>
@@ -1298,65 +1345,24 @@ function App() {
                 })}
               </div>
             </div>
-          )}
-
-          {activeShopTab === 'boosts' && (
-            <div className="shop-tab-content">
-              <h3 className="shop-category-title">Boostery do skupienia</h3>
-              <div className="shop-items-grid">
-                {getItemsByCategory('boost').map(item => {
-                  const isOwned = ownedItems.find(owned => owned.id === item.id);
-                  const isActive = activeBoosts.includes(item.id);
-                  return (
-                    <div key={item.id} className={`shop-item-card ${isOwned ? 'owned' : ''} ${isActive ? 'active' : ''} ${purchasingItem === item.id ? 'purchasing' : ''}`}>
-                      <div className="shop-item-icon">{item.icon}</div>
-                      <div className="shop-item-name">{item.name}</div>
-                      <div className="shop-item-description">{item.description}</div>
-                      <div className="shop-item-effect">{item.effect}</div>
-                      <div className="shop-item-price">
-                        <span className="shop-price-icon">🌱</span>
-                        <span className="shop-price-amount">{item.price}</span>
-            </div>
-                      {isOwned ? (
-                        <button 
-                          className={`shop-buy-btn ${isActive ? 'active-btn' : 'use-btn'}`}
-                          onClick={() => isActive ? deactivateItem(item.id, 'boost') : activateItem(item)}
-                        >
-                          {isActive ? '✓ Aktywny' : 'Użyj'}
-                        </button>
-                      ) : (
-            <button 
-                          className={`shop-buy-btn ${coins >= item.price ? '' : 'disabled'}`}
-                          onClick={() => buyItem(item)}
-                          disabled={coins < item.price}
-            >
-                          {coins >= item.price ? 'Kup' : 'Za mało nasion'}
-            </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-          </div>
           )}
 
           {activeShopTab === 'atmosphere' && (
             <div className="shop-tab-content">
               <h3 className="shop-category-title">Atmosfera</h3>
               <div className="shop-items-grid">
-                {getItemsByCategory('atmosphere').concat(getItemsByCategory('notification')).map(item => {
+                {getItemsByCategory('atmosphere').map(item => {
                   const isOwned = ownedItems.find(owned => owned.id === item.id);
-                  const isActive = activeAtmosphere.includes(item.id);
+                  const isActive = activeAtmosphere === item.id;
                   return (
                     <div key={item.id} className={`shop-item-card ${isOwned ? 'owned' : ''} ${isActive ? 'active' : ''} ${purchasingItem === item.id ? 'purchasing' : ''}`}>
                       <div className="shop-item-icon">{item.icon}</div>
                       <div className="shop-item-name">{item.name}</div>
                       <div className="shop-item-description">{item.description}</div>
-                      <div className="shop-item-effect">{item.effect}</div>
                       <div className="shop-item-price">
                         <span className="shop-price-icon">🌱</span>
                         <span className="shop-price-amount">{item.price}</span>
-            </div>
+                      </div>
                       {isOwned ? (
                         <button 
                           className={`shop-buy-btn ${isActive ? 'active-btn' : 'use-btn'}`}
@@ -1365,18 +1371,18 @@ function App() {
                           {isActive ? '✓ Aktywny' : 'Użyj'}
                         </button>
                       ) : (
-            <button 
+                        <button 
                           className={`shop-buy-btn ${coins >= item.price ? '' : 'disabled'}`}
                           onClick={() => buyItem(item)}
                           disabled={coins < item.price}
-            >
+                        >
                           {coins >= item.price ? 'Kup' : 'Za mało nasion'}
-            </button>
+                        </button>
                       )}
                     </div>
                   );
                 })}
-          </div>
+              </div>
             </div>
           )}
 
@@ -1461,6 +1467,7 @@ function App() {
           breathingEnabled={breathingExercises.enabled}
           breathingDuration={breathingExercises.duration}
           shopItems={shopItems}
+          isLowFocusReturn={isLowFocusReturn}
         />
       )}
 
@@ -2289,80 +2296,42 @@ function App() {
                     <span className="settings-item-label">Atmosfera podczas sesji</span>
                     <span className="settings-item-description">Wybierz atmosferę odtwarzaną podczas sesji (tylko kupione)</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                  <select 
+                    value={activeAtmosphere || ''} 
+                    onChange={(e) => {
+                      const selectedItem = shopItems.find(item => item.id === e.target.value);
+                      if (selectedItem) {
+                        activateItem(selectedItem);
+                      } else {
+                        deactivateItem(null, 'atmosphere');
+                      }
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '2px solid #87AE73',
+                      background: '#FFFFE3',
+                      color: '#2d3e2d',
+                      fontSize: '12px',
+                      fontFamily: 'Manrope, sans-serif',
+                      cursor: 'pointer',
+                      minWidth: '150px'
+                    }}
+                  >
+                    <option value="">Brak atmosfery</option>
                     {getItemsByCategory('atmosphere')
-                      .filter(item => ownedItems.includes(item.id))
-                      .map(item => {
-                        const isActive = activeAtmosphere.includes(item.id);
-                        return (
-                          <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', background: isActive ? 'rgba(135, 174, 115, 0.2)' : 'transparent', borderRadius: '8px' }}>
-                            <span style={{ fontSize: '12px', color: '#2d3e2d' }}>
-                              {item.icon} {item.name}
-                            </span>
-                            <label className="toggle-switch" style={{ margin: 0 }}>
-                              <input 
-                                type="checkbox" 
-                                checked={isActive}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    activateItem(item);
-                                  } else {
-                                    deactivateItem(item.id, 'atmosphere');
-                                  }
-                                }}
-                              />
-                              <span className="toggle-slider"></span>
-                            </label>
-                          </div>
-                        );
-                      })}
-                    {getItemsByCategory('atmosphere').filter(item => ownedItems.includes(item.id)).length === 0 && (
-                      <span style={{ fontSize: '11px', color: 'rgba(45, 62, 45, 0.6)', fontStyle: 'italic' }}>
-                        Brak kupionych atmosfer - kup w sklepie
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Boostery - tylko kupione */}
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <span className="settings-item-label">Aktywne boostery</span>
-                    <span className="settings-item-description">Włącz boostery podczas sesji (tylko kupione)</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                    {getItemsByCategory('boost')
-                      .filter(item => ownedItems.includes(item.id))
-                      .map(item => {
-                        const isActive = activeBoosts.includes(item.id);
-                        return (
-                          <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', background: isActive ? 'rgba(135, 174, 115, 0.2)' : 'transparent', borderRadius: '8px' }}>
-                            <span style={{ fontSize: '12px', color: '#2d3e2d' }}>
-                              {item.icon} {item.name} - {item.effect}
-                            </span>
-                            <label className="toggle-switch" style={{ margin: 0 }}>
-                              <input 
-                                type="checkbox" 
-                                checked={isActive}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    activateItem(item);
-                                  } else {
-                                    deactivateItem(item.id, 'boost');
-                                  }
-                                }}
-                              />
-                              <span className="toggle-slider"></span>
-                            </label>
-                          </div>
-                        );
-                      })}
-                    {getItemsByCategory('boost').filter(item => ownedItems.includes(item.id)).length === 0 && (
-                      <span style={{ fontSize: '11px', color: 'rgba(45, 62, 45, 0.6)', fontStyle: 'italic' }}>
-                        Brak kupionych boosterów - kup w sklepie
-                      </span>
-                    )}
-                  </div>
+                      .filter(item => ownedItems.find(owned => owned.id === item.id))
+                      .map(item => (
+                        <option key={item.id} value={item.id}>
+                          {item.icon} {item.name}
+                        </option>
+                      ))}
+                  </select>
+                  {getItemsByCategory('atmosphere').filter(item => ownedItems.find(owned => owned.id === item.id)).length === 0 && (
+                    <span style={{ fontSize: '11px', color: 'rgba(45, 62, 45, 0.6)', fontStyle: 'italic', marginTop: '8px', display: 'block' }}>
+                      Brak kupionych atmosfer - kup w sklepie
+                    </span>
+                  )}
                 </div>
 
                 {/* Widok drzewa - tylko kupione */}
