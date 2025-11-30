@@ -1,6 +1,6 @@
 # 🌳 NeuroGradient
 
-**NeuroGradient** is an innovative focus and time management application that uses neurofeedback from EEG devices to visualize concentration levels in real-time. The app combines Pomodoro techniques with gamification, where your focus grows as a visual tree.
+**NeuroGradient** is an innovative focus and time management application that uses neurofeedback from EEG devices to visualize concentration levels in real-time. The app combines proven flow state induction techniques with gamification, where your focus grows as a visual tree.
 
 ## 📋 Table of Contents
 
@@ -19,7 +19,6 @@
 
 - **Real-time Neurofeedback** - Visualization of focus level based on EEG device data
 - **Visual Tree** - Tree grows and blooms depending on your concentration level
-- **Pomodoro Sessions** - Time management with configurable focus sessions
 - **Gamification** - Seed system (currency), shop with items, and challenges
 - **Activity Calendar** - Activity visualization like GitHub (contribution graph)
 - **Statistics & Analytics** - Detailed charts and session statistics
@@ -28,11 +27,11 @@
 ### 🎨 Additional Features
 
 - **Breathing Exercises** - Concentration support before sessions
-- **Music & Atmosphere** - Various sound options to choose from
+- **Music & Atmosphere** - Calibrates your internal state to establish the optimal personal environment for deep focus.
 - **Boosters** - Temporary enhancements for tree growth speed
-- **Tree Views** - Different visual styles (normal, Christmas tree, cherry blossom)
+- **Tree Views** - Different visual styles (Normal, Christmas tree, cherry blossom)
 - **Achievements** - Badge system for various achievements
-- **Leaderboard** - Compare results with other users
+- **Leaderboard** - See your friends tree's collection
 - **3D Map** - Visualization of planted trees on a map
 
 ## 🛠 Technologies
@@ -178,7 +177,7 @@ python eeg-service/main.py
 
 Edit `eeg-service/main.py`:
 ```python
-DEVICE_NAME = "BA MINI 048"  # Your device name
+DEVICE_NAME = "BA MINI 048"
 ```
 
 ### Chrome Extension
@@ -194,32 +193,32 @@ Detailed instructions: [chrome-extension/QUICK_START.md](chrome-extension/QUICK_
 
 ```
 NeuroGradient/
-├── frontend/              # React application
+├── frontend/               # React application
 │   ├── src/
-│   │   ├── App.js        # Main component
-│   │   ├── GrowingTree.js # Tree component
-│   │   ├── Board3D.js    # 3D Map
-│   │   └── IntroScreen.js # Intro screen
+│   │   ├── App.js          # Main component
+│   │   ├── GrowingTree.js  # Tree component
+│   │   ├── Board3D.js      # 3D Map
+│   │   └── IntroScreen.js  # Intro screen
 │   ├── public/
-│   │   └── music/        # Music files
+│   │   └── music/          # Music files
 │   └── package.json
 │
-├── backend/               # Express server
-│   ├── server.js         # Main server
+├── backend/                # Express server
+│   ├── server.js           # Main server
 │   └── package.json
 │
-├── eeg-service/          # EEG service (Python)
-│   ├── main.py           # Main script
+├── eeg-service/            # EEG service (Python)
+│   ├── main.py             # Main script
 │   └── requirements.txt
 │
-├── chrome-extension/      # Chrome extension
+├── chrome-extension/       # Chrome extension
 │   ├── manifest.json
 │   ├── background.js
 │   ├── content.js
 │   └── blocked.html
 │
-├── docker-compose.yml     # Docker configuration
-└── README.md             # This file
+├── docker-compose.yml      # Docker configuration
+└── README.md               # This file
 ```
 
 ## 🎮 Usage
@@ -228,7 +227,7 @@ NeuroGradient/
 
 1. **Open the application** in your browser (http://localhost:3000)
 2. **Click "Start Session"**
-3. **Complete breathing exercises** (if enabled)
+3. **Complete breathing exercises** (if enabled) - to prepare for focus
 4. **Watch the tree** - it grows depending on your focus level
 5. **End the session** - click "End Session"
 
@@ -262,7 +261,7 @@ Open **Settings** (gear icon) to:
 
 - **Open Challenges** (target icon)
 - **Complete challenges** to earn rewards
-- **Claim rewards** - click "Claim Reward" after completion
+- **Claim rewards**
 
 ### Website Blocker
 
@@ -360,6 +359,7 @@ lsof -i :3000
 - **10/50 hours of study** - 150/500 seeds
 
 ### Challenges
+Every week new challenges are available, e.g.:
 - **Habit Builder** - 7 sessions per week → 100 seeds
 - **Night Owl** - Session after 8 PM → 50 seeds
 - **New Horizon** - 3 different views → Achievement
@@ -379,7 +379,7 @@ lsof -i :3000
 - Fireplace
 
 ### Tree Views
-- Normal tree (free)
+- Normal tree
 - Christmas tree
 - Cherry blossom
 
@@ -505,7 +505,7 @@ python main.py
 #### Device Name
 Edit `eeg-service/main.py`:
 ```python
-DEVICE_NAME = "BA MINI 048"  # Change to your device name
+DEVICE_NAME = "BA MINI 048"
 ```
 
 #### API URL
@@ -539,7 +539,6 @@ export API_URL="http://localhost:3001/api/focus-data"
 
 #### Error: Module not found (e.g., `brainaccess`)
 - Install dependencies: `pip install -r eeg-service/requirements.txt`
-- If `brainaccess` is not in PyPI, check installation documentation
 
 #### Service continues without backend
 - This is normal - the service will process data but not send it
@@ -554,11 +553,15 @@ If you encounter problems:
 
 ## 📄 License
 
-[Specify license]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 👥 Authors
 
-[Your name/team name]
+- Zuzanna Warchoł [GitHub](https://github.com/zoeblues)
+- Antoni Kwiatek [GitHub](https://github.com/Kwiatek47)
+- Filip Pawlicki [GitHub](https://github.com/filippawlicki)
+- Mateusz Dobry [GitHub](https://github.com/MateuszDobry)
+- Jakub Wilk [GitHub](https://github.com/PyroX2)
 
 ---
 
