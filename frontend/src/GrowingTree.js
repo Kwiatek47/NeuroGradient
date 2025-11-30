@@ -4,15 +4,18 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   const [treeMaturityDisplay, setTreeMaturityDisplay] = useState(0);
+  const [accumulatedFocusScore, setAccumulatedFocusScore] = useState(0);
   const stateRef = useRef({
     inputP: 0,
+    accumulatedFocusScore: 0, // Akumulowany focus score
     treeMaturity: 0,
     focusLevel: 0,
     currentTreeSize: 0,
     currentBloomLevel: 0,
     time: 0,
     fallingLeaves: [],
-    branchBloomState: new Map()
+    branchBloomState: new Map(),
+    lastInputP: 0 // Do śledzenia zmian
   });
 
   useEffect(() => {
@@ -23,7 +26,7 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
     let width, height;
 
     // --- KONFIGURACJA PRĘDKOŚCI ---
-    const GROWTH_SPEED = 0.01; // Zwiększono 90x dla szybkiej reakcji
+    const CONSTANT_GROWTH = 0.002; // Stała wartość wzrostu przy każdym dodatnim inputP
     const MAX_TREE_SIZE = 180;
     const MIN_TREE_SIZE = 80;
 
@@ -154,19 +157,23 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
       ctx.clearRect(0, 0, width, height);
       stateRef.current.time += 0.03;
 
-      // Aktualizuj inputP w każdej klatce - używaj najnowszej wartości z props
-      if (stateRef.current.inputP !== inputP) {
-        console.log('[GrowingTree] inputP changed:', inputP, 'treeMaturity:', stateRef.current.treeMaturity);
+      // Aktualizuj inputP i akumuluj focus score
+      if (stateRef.current.lastInputP !== inputP) {
+        // Dodaj nową wartość do akumulowanego focus score
+        if (inputP > 0) {
+          stateRef.current.accumulatedFocusScore += inputP;
+          setAccumulatedFocusScore(stateRef.current.accumulatedFocusScore);
+          
+          // --- GŁÓWNA LOGIKA WZROSTU OPARTA NA INPUT P ---
+          // Tylko dodatnie wartości zwiększają drzewo o STAŁĄ wartość
+          stateRef.current.treeMaturity += CONSTANT_GROWTH;
+        }
+        // Ujemne wartości nie zmniejszają akumulowanego score ani drzewa
+        
+        console.log('[GrowingTree] inputP:', inputP, 'accumulated:', stateRef.current.accumulatedFocusScore.toFixed(3), 'treeMaturity:', stateRef.current.treeMaturity.toFixed(3));
+        stateRef.current.lastInputP = inputP;
       }
       stateRef.current.inputP = inputP;
-
-      // --- GŁÓWNA LOGIKA WZROSTU OPARTA NA INPUT P ---
-      // Tylko dodatnie wartości zwiększają drzewo
-      // Ujemne wartości nie zmniejszają drzewa - zostaje na stałym poziomie
-      if (stateRef.current.inputP > 0) {
-        stateRef.current.treeMaturity += stateRef.current.inputP * GROWTH_SPEED;
-      }
-      // Ujemne wartości są ignorowane - drzewo nie zmniejsza się
       
       if (stateRef.current.treeMaturity > 1.0) stateRef.current.treeMaturity = 1.0;
       if (stateRef.current.treeMaturity < 0.0) stateRef.current.treeMaturity = 0.0;
@@ -329,14 +336,14 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
           textShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
           marginBottom: '12px'
         }}>
-          {inputP.toFixed(3)}
+          {accumulatedFocusScore.toFixed(3)}
         </div>
         <div style={{
           fontSize: '12px',
           marginBottom: '12px',
           opacity: 0.6
         }}>
-          {inputP > 0 ? '↑ Wzrost' : inputP < 0 ? '↓ Spadek' : '— Neutralne'}
+          Aktualne: {inputP.toFixed(3)} {inputP > 0 ? '↑' : inputP < 0 ? '↓' : '—'}
         </div>
         <div style={{
           fontSize: '14px',

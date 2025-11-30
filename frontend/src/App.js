@@ -408,13 +408,25 @@ function App() {
     setShowIntro(true);
   };
   
-  const handleIntroComplete = () => {
+  const handleIntroComplete = async () => {
     // Po zakończeniu intro rozpocznij właściwą sesję
     setShowIntro(false);
     setIsActive(true);
     setIsPaused(false);
     setSessionStartTime(Date.now());
     setSessionDuration(0);
+    
+    // Powiadom backend o rozpoczęciu sesji
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    try {
+      await fetch(`${API_URL}/api/session/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      console.log('[SESSION] Started on backend');
+    } catch (error) {
+      console.error('Error starting session on backend:', error);
+    }
     
     // Zatrzymaj muzykę intro jeśli była odtwarzana
     if (introAudioRef.current) {
@@ -533,6 +545,15 @@ function App() {
       });
       setShowSessionSummary(true);
     }
+    
+    // Powiadom backend o zakończeniu sesji
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    fetch(`${API_URL}/api/session/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    }).catch(error => {
+      console.error('Error stopping session on backend:', error);
+    });
     
     setIsActive(false);
     setIsPaused(false);

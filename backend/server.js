@@ -9,6 +9,28 @@ app.use(express.json());
 // --- Przechowywanie danych z EEG ---
 let lastFocusScore = 0;
 let lastFocusTimestamp = null;
+let sessionActive = false;
+let sessionStartTime = null;
+
+// Endpoint do rozpoczęcia sesji
+app.post('/api/session/start', (req, res) => {
+  sessionActive = true;
+  sessionStartTime = Date.now();
+  // Resetujemy score na początku sesji, aby drzewo zaczęło rosnąć od zera
+  lastFocusScore = 0;
+  lastFocusTimestamp = null;
+  console.log(`[SESSION] Started at ${new Date(sessionStartTime).toISOString()}`);
+  res.json({ success: true, sessionStartTime });
+});
+
+// Endpoint do zakończenia sesji
+app.post('/api/session/stop', (req, res) => {
+  sessionActive = false;
+  const sessionDuration = sessionStartTime ? Date.now() - sessionStartTime : 0;
+  console.log(`[SESSION] Stopped. Duration: ${Math.floor(sessionDuration / 1000)}s`);
+  sessionStartTime = null;
+  res.json({ success: true, duration: sessionDuration });
+});
 
 // Endpoint do odbierania danych z skryptu EEG (POST)
 app.post('/api/focus-data', (req, res) => {
