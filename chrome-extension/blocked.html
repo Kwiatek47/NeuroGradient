@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strona zablokowana - NeuroGradient</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #cfc5b0 0%, #87AE73 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: #FFFFE3;
+      border-radius: 25px;
+      padding: 50px 40px;
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+    
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      color: #2d3e2d;
+      font-size: 32px;
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+    
+    p {
+      color: #2d3e2d;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 30px;
+      opacity: 0.8;
+    }
+    
+    .blocked-url {
+      background: rgba(135, 174, 115, 0.1);
+      padding: 15px;
+      border-radius: 12px;
+      margin: 20px 0;
+      word-break: break-all;
+      color: #2d3e2d;
+      font-size: 14px;
+    }
+    
+    .button {
+      background: #87AE73;
+      color: #FFFFE3;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Manrope', sans-serif;
+    }
+    
+    .button:hover {
+      background: #7a9d66;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(135, 174, 115, 0.4);
+    }
+    
+    .info {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 2px solid rgba(135, 174, 115, 0.2);
+      font-size: 14px;
+      color: #2d3e2d;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🚫</div>
+    <h1>Strona zablokowana</h1>
+    <p>Ta strona została zablokowana podczas sesji skupienia.</p>
+    <div class="blocked-url" id="blockedUrl"></div>
+    <button class="button" onclick="goBack()">Wróć do poprzedniej strony</button>
+    <div class="info">
+      Możesz odblokować tę stronę w ustawieniach aplikacji NeuroGradient.
+    </div>
+  </div>
+  
+  <script>
+    // Pobierz zablokowany URL z parametrów
+    const urlParams = new URLSearchParams(window.location.search);
+    const blockedUrl = urlParams.get('url');
+    
+    if (blockedUrl) {
+      document.getElementById('blockedUrl').textContent = blockedUrl;
+    }
+    
+    function goBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = 'http://localhost:3000';
+      }
+    }
+    
+    // Automatyczne przekierowanie po 10 sekundach (opcjonalnie)
+    // setTimeout(goBack, 10000);
+  </script>
+</body>
+</html>
+
