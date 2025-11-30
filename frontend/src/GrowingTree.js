@@ -23,7 +23,7 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
     let width, height;
 
     // --- KONFIGURACJA PRĘDKOŚCI ---
-    const GROWTH_SPEED = 0.000111;
+    const GROWTH_SPEED = 0.01; // Zwiększono 90x dla szybkiej reakcji
     const MAX_TREE_SIZE = 180;
     const MIN_TREE_SIZE = 80;
 
@@ -154,15 +154,19 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
       ctx.clearRect(0, 0, width, height);
       stateRef.current.time += 0.03;
 
-      // Aktualizuj inputP w każdej klatce
+      // Aktualizuj inputP w każdej klatce - używaj najnowszej wartości z props
+      if (stateRef.current.inputP !== inputP) {
+        console.log('[GrowingTree] inputP changed:', inputP, 'treeMaturity:', stateRef.current.treeMaturity);
+      }
       stateRef.current.inputP = inputP;
 
       // --- GŁÓWNA LOGIKA WZROSTU OPARTA NA INPUT P ---
-      // Prosta logika: inputP * GROWTH_SPEED
-      // Wartości dodatnie (0; 1] - wzrost proporcjonalny do wartości
-      // Wartości ujemne [-1; 0) - spadek proporcjonalny do wartości bezwzględnej
-      // Input 0.5 = 5 minut do pełnego wzrostu (300s * 60fps = 18000 klatek, 1.0 / (18000 * 0.5) = ~0.000111)
-      stateRef.current.treeMaturity += stateRef.current.inputP * GROWTH_SPEED;
+      // Tylko dodatnie wartości zwiększają drzewo
+      // Ujemne wartości nie zmniejszają drzewa - zostaje na stałym poziomie
+      if (stateRef.current.inputP > 0) {
+        stateRef.current.treeMaturity += stateRef.current.inputP * GROWTH_SPEED;
+      }
+      // Ujemne wartości są ignorowane - drzewo nie zmniejsza się
       
       if (stateRef.current.treeMaturity > 1.0) stateRef.current.treeMaturity = 1.0;
       if (stateRef.current.treeMaturity < 0.0) stateRef.current.treeMaturity = 0.0;
@@ -175,22 +179,22 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
       // Mapowanie na wizualia
       stateRef.current.focusLevel = stateRef.current.treeMaturity;
       let targetSize = MIN_TREE_SIZE + (stateRef.current.treeMaturity * (MAX_TREE_SIZE - MIN_TREE_SIZE));
-      stateRef.current.currentTreeSize += (targetSize - stateRef.current.currentTreeSize) * 0.1;
+      // Zwiększono szybkość animacji rozmiaru z 0.1 na 0.5 dla szybkiej reakcji
+      stateRef.current.currentTreeSize += (targetSize - stateRef.current.currentTreeSize) * 0.5;
 
       let targetBloom = 0;
       if (stateRef.current.treeMaturity > 0.8) {
         targetBloom = (stateRef.current.treeMaturity - 0.8) * 5;
       }
-      stateRef.current.currentBloomLevel += (targetBloom - stateRef.current.currentBloomLevel) * 0.05;
+      // Zwiększono szybkość animacji kwiatów z 0.05 na 0.3
+      stateRef.current.currentBloomLevel += (targetBloom - stateRef.current.currentBloomLevel) * 0.3;
 
       if (stateRef.current.currentTreeSize > 10) {
         drawTree(width / 2, height, stateRef.current.currentTreeSize, 0, 22, 'S');
       }
 
-      // Spadanie liści - rzadziej, bo proces jest wolniejszy
-      if (stateRef.current.inputP < -0.1 && stateRef.current.treeMaturity < 0.5) {
-        if (Math.random() > 0.95) spawnLeaf();
-      }
+      // Spadanie liści - tylko przy bardzo niskim skupieniu (ale nie zmniejszamy drzewa)
+      // Usunięto logikę spadania liści przy ujemnych wartościach, bo drzewo nie zmniejsza się
 
       updateLeaves();
 
@@ -206,7 +210,7 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [inputP]);
+  }, []); // Usunięto [inputP] - animacja nie restartuje się przy każdej zmianie
 
   return (
     <div style={{ 
