@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDuration = 0 }) {
+function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDuration = 0, onLowFocus = null }) {
   const canvasRef = useRef(null);
+  const chartCanvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   const [inputPDisplay, setInputPDisplay] = useState(0);
   const [eegConnected, setEegConnected] = useState(false);
@@ -13,7 +14,12 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
     time: 0,
     fallingLeaves: [],
     branchBloomState: new Map(),
-    lastInputP: 0 // Do śledzenia zmian
+    lastInputP: 0, // Do śledzenia zmian
+    lowFocusStartTime: null, // Czas rozpoczęcia braku skupienia
+    lowFocusCallbackTriggered: false, // Czy callback został już wywołany
+    lowFocusThreshold: 30000, // 30 sekund w milisekundach
+    focusHistory: [], // Historia focus score dla wykresu
+    maxHistoryLength: 300 // Maksymalna liczba punktów (60 sekund przy 5 punktów/sekundę)
   });
   
   // API URL - można skonfigurować przez zmienną środowiskową
@@ -194,6 +200,9 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
 
       updateLeaves();
 
+      // Rysuj wykres focus score
+      drawChart();
+
       animationFrameRef.current = requestAnimationFrame(animate);
     }
 
@@ -204,8 +213,50 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
         if (response.ok) {
           const data = await response.json();
           // Score z API jest w zakresie -1.0 do 1.0
-          stateRef.current.inputP = data.score || 0;
+          const newInputP = data.score || 0;
+          const previousInputP = stateRef.current.inputP;
+          stateRef.current.inputP = newInputP;
           setEegConnected(data.isActive || false);
+          
+          // Dodaj do historii focus score dla wykresu
+          const timestamp = Date.now();
+          stateRef.current.focusHistory.push({
+            score: newInputP,
+            timestamp: timestamp
+          });
+          
+          // Ogranicz długość historii
+          if (stateRef.current.focusHistory.length > stateRef.current.maxHistoryLength) {
+            stateRef.current.focusHistory.shift();
+          }
+          
+          // --- WYKRYWANIE DŁUGOTRWAŁEGO BRAKU SKUPIENIA ---
+          // Uznajemy brak skupienia gdy score < 0.1 (blisko zera lub ujemne)
+          const isLowFocus = newInputP < 0.1;
+          const now = timestamp;
+          
+          if (isLowFocus) {
+            // Jeśli brak skupienia, zacznij lub kontynuuj liczenie czasu
+            if (stateRef.current.lowFocusStartTime === null) {
+              stateRef.current.lowFocusStartTime = now;
+            } else {
+              // Sprawdź czy przekroczono próg
+              const lowFocusDuration = now - stateRef.current.lowFocusStartTime;
+              if (lowFocusDuration >= stateRef.current.lowFocusThreshold && onLowFocus) {
+                // Wywołaj callback tylko raz
+                if (!stateRef.current.lowFocusCallbackTriggered) {
+                  stateRef.current.lowFocusCallbackTriggered = true;
+                  onLowFocus();
+                }
+              }
+            }
+          } else {
+            // Jeśli skupienie wróciło, zresetuj licznik
+            if (stateRef.current.lowFocusStartTime !== null) {
+              stateRef.current.lowFocusStartTime = null;
+              stateRef.current.lowFocusCallbackTriggered = false;
+            }
+          }
         } else {
           setEegConnected(false);
         }
@@ -218,14 +269,115 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
     // Polling co 200ms (zgodnie z UPDATE_INTERVAL w main.py)
     const focusDataInterval = setInterval(fetchFocusData, 200);
     
+    // Reset flagi przy starcie
+    stateRef.current.lowFocusStartTime = null;
+    stateRef.current.lowFocusCallbackTriggered = false;
+    stateRef.current.focusHistory = [];
+    
     // Pobierz dane od razu
     fetchFocusData();
+
+    // --- RYSOWANIE WYKRESU FOCUS SCORE ---
+    const chartCanvas = chartCanvasRef.current;
+    let chartCtx = null;
+    let chartWidth = 0;
+    let chartHeight = 0;
+
+    const resizeChart = () => {
+      if (!chartCanvas) return;
+      chartWidth = Math.min(400, window.innerWidth * 0.4);
+      chartHeight = 120;
+      chartCanvas.width = chartWidth;
+      chartCanvas.height = chartHeight;
+      chartCtx = chartCanvas.getContext('2d');
+    };
+
+    const drawChart = () => {
+      if (!chartCtx || !chartCanvas) return;
+      
+      const history = stateRef.current.focusHistory;
+      if (history.length < 2) return;
+
+      // Wyczyść canvas
+      chartCtx.clearRect(0, 0, chartWidth, chartHeight);
+
+      // Tło wykresu
+      chartCtx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      chartCtx.fillRect(0, 0, chartWidth, chartHeight);
+
+      // Linia środkowa (zero)
+      chartCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      chartCtx.lineWidth = 1;
+      chartCtx.beginPath();
+      chartCtx.moveTo(0, chartHeight / 2);
+      chartCtx.lineTo(chartWidth, chartHeight / 2);
+      chartCtx.stroke();
+
+      // Rysuj linię wykresu
+      const padding = 10;
+      const graphWidth = chartWidth - padding * 2;
+      const graphHeight = chartHeight - padding * 2;
+      const centerY = chartHeight / 2;
+
+      chartCtx.beginPath();
+      let firstPoint = true;
+
+      history.forEach((point, index) => {
+        const x = padding + (index / (history.length - 1)) * graphWidth;
+        // Mapuj score z -1..1 na wysokość wykresu
+        const y = centerY - (point.score * (graphHeight / 2));
+
+        if (firstPoint) {
+          chartCtx.moveTo(x, y);
+          firstPoint = false;
+        } else {
+          chartCtx.lineTo(x, y);
+        }
+      });
+
+      // Określ kolor na podstawie ostatniego punktu
+      const lastScore = history[history.length - 1].score;
+      let lineColor;
+      if (lastScore > 0.3) {
+        lineColor = '#4CAF50'; // Zielony - wysokie skupienie
+      } else if (lastScore > -0.3) {
+        lineColor = '#FFC107'; // Żółty - średnie skupienie
+      } else {
+        lineColor = '#F44336'; // Czerwony - niskie skupienie
+      }
+
+      chartCtx.strokeStyle = lineColor;
+      chartCtx.lineWidth = 2;
+      chartCtx.stroke();
+
+      // Rysuj wypełnienie pod wykresem
+      chartCtx.lineTo(padding + graphWidth, centerY);
+      chartCtx.lineTo(padding, centerY);
+      chartCtx.closePath();
+      chartCtx.fillStyle = lineColor + '40'; // 40 = 25% opacity
+      chartCtx.fill();
+
+      // Rysuj punkty na wykresie (co kilka punktów dla wydajności)
+      chartCtx.fillStyle = lineColor;
+      for (let i = 0; i < history.length; i += Math.max(1, Math.floor(history.length / 20))) {
+        const point = history[i];
+        const x = padding + (i / (history.length - 1)) * graphWidth;
+        const y = centerY - (point.score * (graphHeight / 2));
+        chartCtx.beginPath();
+        chartCtx.arc(x, y, 2, 0, Math.PI * 2);
+        chartCtx.fill();
+      }
+    };
+
+    resizeChart();
+    window.addEventListener('resize', resizeChart);
 
     // Start animation
     animate();
 
     return () => {
       window.removeEventListener('resize', resize);
+      window.removeEventListener('resize', resizeChart);
       clearInterval(focusDataInterval);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -254,27 +406,30 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '12px',
-          width: 'auto'
+          gap: '20px',
+          width: 'auto',
+          minWidth: '300px'
         }}>
           <button
             onClick={onStop}
             style={{
-              padding: '12px 24px',
+              padding: '20px 40px',
               background: '#4A90E2',
               color: '#FFFFE3',
-              border: '3px solid #1E3A5F',
-              borderRadius: '12px',
-              fontSize: '14px',
-              fontWeight: 600,
+              border: '4px solid #1E3A5F',
+              borderRadius: '16px',
+              fontSize: '22px',
+              fontWeight: 700,
               fontFamily: "'Manrope', sans-serif",
               cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.3)',
               transition: 'all 0.3s ease',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              whiteSpace: 'nowrap'
+              gap: '12px',
+              whiteSpace: 'nowrap',
+              minWidth: '280px',
+              justifyContent: 'center'
             }}
             onMouseEnter={(e) => {
               e.target.style.background = '#357ABD';
@@ -294,15 +449,15 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
           {showTimer && (
             <div style={{
               background: 'rgba(255, 255, 255, 0.9)',
-              padding: '10px 18px',
-              borderRadius: '12px',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+              padding: '18px 36px',
+              borderRadius: '16px',
+              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.3)',
               fontFamily: "'Manrope', sans-serif",
-              fontSize: '18px',
-              fontWeight: 600,
+              fontSize: '32px',
+              fontWeight: 700,
               color: '#2d3e2d',
               width: 'fit-content',
-              minWidth: '80px',
+              minWidth: '150px',
               textAlign: 'center'
             }}>
               {Math.floor(sessionDuration / 60)}:{(sessionDuration % 60).toString().padStart(2, '0')}
@@ -315,34 +470,46 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
         style={{ display: 'block' }}
       />
       
-      {/* Wyświetlanie Input P (powiększone) */}
+      {/* Wykres focus score w czasie rzeczywistym */}
       <div style={{
         position: 'absolute',
-        top: '20px',
-        left: '20px',
-        fontFamily: "'Segoe UI', sans-serif",
-        color: '#444',
-        background: 'rgba(255, 255, 255, 0.7)',
-        padding: '20px',
+        bottom: '20px',
+        right: '20px',
+        background: 'rgba(0, 0, 0, 0.5)',
         borderRadius: '12px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        width: '320px',
-        zIndex: 1002
+        padding: '12px',
+        zIndex: 1002,
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
       }}>
-        <h2 style={{ margin: '0 0 10px 0', fontSize: '24px' }}>Growing Mind Tree</h2>
-        <p style={{ margin: '5px 0', fontSize: '16px' }}><strong>Tryb Focus (EEG)</strong></p>
-        <p style={{ margin: '5px 0', fontSize: '14px', opacity: 0.8 }}>
-          Status EEG: <span style={{ color: eegConnected ? '#4CAF50' : '#F44336', fontWeight: 600 }}>
-            {eegConnected ? '✓ Połączono' : '✗ Brak połączenia'}
-          </span>
-        </p>
-        <hr style={{ margin: '15px 0', border: 'none', borderTop: '1px solid rgba(0,0,0,0.1)' }} />
-        <p style={{ margin: '10px 0', fontSize: '18px' }}>
-          Focus Score: <span style={{ fontWeight: 600, color: inputPDisplay > 0 ? 'green' : inputPDisplay < 0 ? 'brown' : 'gray' }}>{inputPDisplay.toFixed(3)}</span>
-        </p>
-        <p style={{ margin: '5px 0', fontSize: '14px', opacity: 0.7 }}>
-          (Zakres: -1.0 do 1.0)
-        </p>
+        <div style={{
+          color: '#FFFFE3',
+          fontSize: '12px',
+          fontFamily: "'Manrope', sans-serif",
+          marginBottom: '8px',
+          fontWeight: 600,
+          textAlign: 'center'
+        }}>
+          Focus Score
+        </div>
+        <canvas 
+          ref={chartCanvasRef}
+          style={{ display: 'block', borderRadius: '8px' }}
+        />
+        <div style={{
+          color: 'rgba(255, 255, 255, 0.7)',
+          fontSize: '10px',
+          fontFamily: "'Manrope', sans-serif",
+          marginTop: '6px',
+          textAlign: 'center',
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: '8px'
+        }}>
+          <span style={{ color: '#F44336' }}>Niski</span>
+          <span style={{ color: '#FFC107' }}>Średni</span>
+          <span style={{ color: '#4CAF50' }}>Wysoki</span>
+        </div>
       </div>
     </div>
   );

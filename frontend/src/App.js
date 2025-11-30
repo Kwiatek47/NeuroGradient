@@ -407,6 +407,13 @@ function App() {
     setShowIntro(true);
   };
   
+  const handleLowFocus = () => {
+    // Gdy wykryto długotrwały brak skupienia, pokaż intro z ćwiczeniami oddechowymi
+    setIsActive(false);
+    setShowIntro(true);
+    console.log('⚠️ Długotrwały brak skupienia wykryty - powrót do ćwiczeń oddechowych');
+  };
+
   const handleIntroComplete = async () => {
     // Po zakończeniu intro rozpocznij właściwą sesję
     setShowIntro(false);
@@ -512,14 +519,26 @@ function App() {
       setShowSessionSummary(true);
     }
     
-    // Powiadom backend o zakończeniu sesji
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-    fetch(`${API_URL}/api/session/stop`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    }).catch(error => {
-      console.error('Error stopping session on backend:', error);
-    });
+      // Powiadom backend o zakończeniu sesji i pobierz statystyki focus score
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      fetch(`${API_URL}/api/session/stop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Oblicz ocenę stanu skupienia na podstawie statystyk
+        const focusAssessment = calculateFocusAssessment(data.focusStats || {});
+        
+        // Dodaj ocenę do sessionSummaryData
+        setSessionSummaryData(prev => ({
+          ...prev,
+          focusAssessment: focusAssessment
+        }));
+      })
+      .catch(error => {
+        console.error('Error stopping session on backend:', error);
+      });
     
     setIsActive(false);
     setIsPaused(false);
@@ -527,6 +546,79 @@ function App() {
     setSessionDuration(0);
     setPausedAt(null);
     setEegConnected(false);
+  };
+
+  // Funkcja do obliczania oceny stanu skupienia (neurofeedback)
+  const calculateFocusAssessment = (focusStats) => {
+    if (!focusStats || focusStats.totalSamples === 0) {
+      return {
+        level: 'brak_danych',
+        label: 'Brak danych EEG',
+        description: 'Nie udało się zebrać danych o skupieniu podczas sesji.',
+        score: 0,
+        color: '#9E9E9E',
+        icon: '❓'
+      };
+    }
+
+    const avgScore = focusStats.averageScore || 0;
+    const positiveTime = focusStats.positiveTime || 0;
+    const maxScore = focusStats.maxScore || 0;
+
+    // Oblicz ogólny wynik (0-100)
+    // 50% średni score (znormalizowany do 0-1), 30% czas z dodatnim score, 20% max score
+    const normalizedAvg = (avgScore + 1) / 2; // -1 do 1 -> 0 do 1
+    const normalizedMax = (maxScore + 1) / 2;
+    const overallScore = (normalizedAvg * 50) + (positiveTime * 30) + (normalizedMax * 20);
+
+    // Określ poziom skupienia
+    let level, label, description, color, icon;
+    
+    if (overallScore >= 80) {
+      level = 'doskonałe';
+      label = 'Doskonałe skupienie!';
+      description = 'Utrzymywałeś bardzo wysoki poziom koncentracji przez większość sesji.';
+      color = '#4CAF50';
+      icon = '🌟';
+    } else if (overallScore >= 65) {
+      level = 'bardzo_dobre';
+      label = 'Bardzo dobre skupienie';
+      description = 'Twój poziom koncentracji był wysoki i stabilny.';
+      color = '#8BC34A';
+      icon = '✨';
+    } else if (overallScore >= 50) {
+      level = 'dobre';
+      label = 'Dobre skupienie';
+      description = 'Utrzymywałeś przyzwoity poziom koncentracji.';
+      color = '#FFC107';
+      icon = '👍';
+    } else if (overallScore >= 35) {
+      level = 'umiarkowane';
+      label = 'Umiarkowane skupienie';
+      description = 'Poziom koncentracji był zmienny. Spróbuj ćwiczeń oddechowych przed następną sesją.';
+      color = '#FF9800';
+      icon = '📊';
+    } else {
+      level = 'niski';
+      label = 'Niskie skupienie';
+      description = 'Poziom koncentracji był niski. Zalecamy ćwiczenia oddechowe i przerwę.';
+      color = '#F44336';
+      icon = '💭';
+    }
+
+    return {
+      level: level,
+      label: label,
+      description: description,
+      score: Math.round(overallScore),
+      color: color,
+      icon: icon,
+      stats: {
+        averageScore: avgScore.toFixed(3),
+        positiveTimePercent: Math.round(positiveTime * 100),
+        maxScore: maxScore.toFixed(3)
+      }
+    };
   };
 
   // Funkcja do obliczania statystyk dla danego dnia
@@ -603,7 +695,7 @@ function App() {
       <audio ref={atmosphereAudioRef} />
       <audio ref={introAudioRef} />
       
-      {/* Profil w lewym górnym rogu */}
+      {/* Profil w prawym górnym rogu */}
       <button 
         className="profile-header-btn"
         onClick={() => {
@@ -624,6 +716,14 @@ function App() {
         <span className="coins-icon">🌱</span>
         <span className="coins-amount">{coins}</span>
       </div>
+
+      {/* Nazwa aplikacji - MindGrow */}
+      {!isActive && (
+        <div className="app-title-container">
+          <h1 className="app-title">MindGrow</h1>
+          <div className="app-title-subtitle">Let your mind grow</div>
+        </div>
+      )}
 
       <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)}>
         ☰
@@ -1046,6 +1146,7 @@ function App() {
           onStop={stopActivity}
           showTimer={sessionConfig.showTimer}
           sessionDuration={sessionDuration}
+          onLowFocus={handleLowFocus}
         />
       )}
 
@@ -1968,6 +2069,66 @@ function App() {
                   <div className="session-summary-stat-label">Zakończenie</div>
                 </div>
               </div>
+
+              {/* Ocena stanu skupienia - Neurofeedback */}
+              {sessionSummaryData.focusAssessment && (
+                <>
+                  <div className="session-summary-section-divider">
+                    <h3 className="session-summary-section-title">Ocena skupienia</h3>
+                  </div>
+                  <div 
+                    className="session-summary-stat-card focus-assessment"
+                    style={{
+                      background: `linear-gradient(135deg, ${sessionSummaryData.focusAssessment.color}15 0%, ${sessionSummaryData.focusAssessment.color}30 100%)`,
+                      border: `2px solid ${sessionSummaryData.focusAssessment.color}60`,
+                      marginBottom: '20px'
+                    }}
+                  >
+                    <div className="session-summary-stat-icon" style={{ fontSize: '40px' }}>
+                      {sessionSummaryData.focusAssessment.icon}
+                    </div>
+                    <div 
+                      className="session-summary-stat-value"
+                      style={{ 
+                        color: sessionSummaryData.focusAssessment.color,
+                        fontSize: '28px',
+                        marginBottom: '8px'
+                      }}
+                    >
+                      {sessionSummaryData.focusAssessment.label}
+                    </div>
+                    <div 
+                      className="session-summary-stat-label"
+                      style={{ 
+                        color: sessionSummaryData.focusAssessment.color,
+                        fontSize: '13px',
+                        marginBottom: '12px',
+                        opacity: 0.9,
+                        lineHeight: '1.4'
+                      }}
+                    >
+                      {sessionSummaryData.focusAssessment.description}
+                    </div>
+                    {sessionSummaryData.focusAssessment.stats && (
+                      <div style={{
+                        marginTop: '12px',
+                        paddingTop: '12px',
+                        borderTop: `1px solid ${sessionSummaryData.focusAssessment.color}40`,
+                        fontSize: '11px',
+                        color: sessionSummaryData.focusAssessment.color,
+                        opacity: 0.8,
+                        lineHeight: '1.6'
+                      }}>
+                        <div><strong>Wynik ogólny:</strong> {sessionSummaryData.focusAssessment.score}/100</div>
+                        <div style={{ marginTop: '4px' }}>
+                          <strong>Średni focus:</strong> {sessionSummaryData.focusAssessment.stats.averageScore} | 
+                          <strong> Czas skupienia:</strong> {sessionSummaryData.focusAssessment.stats.positiveTimePercent}%
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               <div className="session-summary-section-divider">
                 <h3 className="session-summary-section-title">Statystyki dnia</h3>

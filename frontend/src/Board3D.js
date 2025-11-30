@@ -66,6 +66,52 @@ function Cloud({ position, size = 1 }) {
   );
 }
 
+// Drugi rodzaj chmurki - bardziej zaokrąglone, używające sfer
+function Cloud2({ position, size = 1 }) {
+  const cloudRef = useRef();
+  
+  // Lekka animacja przesuwania chmurki (szybsza niż Cloud)
+  useFrame((state) => {
+    if (cloudRef.current) {
+      cloudRef.current.position.x += Math.sin(state.clock.elapsedTime * 0.15 + position.x) * 0.0015;
+      cloudRef.current.rotation.y += 0.0005;
+    }
+  });
+  
+  const cloudSize = 0.7 * size;
+  
+  return (
+    <group ref={cloudRef} position={[position.x, position.y, position.z]}>
+      {/* Główna część chmurki - duża sfera */}
+      <mesh position={[0, 0, 0]}>
+        <sphereGeometry args={[cloudSize, 8, 8]} />
+        <meshStandardMaterial color="#F0F8FF" opacity={0.95} transparent={true} flatShading emissive="#E6F3FF" emissiveIntensity={0.15} />
+      </mesh>
+      {/* Mniejsze sfery tworzące kształt chmurki */}
+      <mesh position={[cloudSize * 0.7, cloudSize * 0.2, 0]}>
+        <sphereGeometry args={[cloudSize * 0.6, 6, 6]} />
+        <meshStandardMaterial color="#F0F8FF" opacity={0.95} transparent={true} flatShading emissive="#E6F3FF" emissiveIntensity={0.15} />
+      </mesh>
+      <mesh position={[-cloudSize * 0.7, cloudSize * 0.15, 0]}>
+        <sphereGeometry args={[cloudSize * 0.65, 6, 6]} />
+        <meshStandardMaterial color="#F0F8FF" opacity={0.95} transparent={true} flatShading emissive="#E6F3FF" emissiveIntensity={0.15} />
+      </mesh>
+      <mesh position={[cloudSize * 0.3, -cloudSize * 0.3, cloudSize * 0.5]}>
+        <sphereGeometry args={[cloudSize * 0.5, 6, 6]} />
+        <meshStandardMaterial color="#F0F8FF" opacity={0.95} transparent={true} flatShading emissive="#E6F3FF" emissiveIntensity={0.15} />
+      </mesh>
+      <mesh position={[-cloudSize * 0.4, -cloudSize * 0.2, -cloudSize * 0.4]}>
+        <sphereGeometry args={[cloudSize * 0.55, 6, 6]} />
+        <meshStandardMaterial color="#F0F8FF" opacity={0.95} transparent={true} flatShading emissive="#E6F3FF" emissiveIntensity={0.15} />
+      </mesh>
+      <mesh position={[0, cloudSize * 0.4, 0]}>
+        <sphereGeometry args={[cloudSize * 0.45, 6, 6]} />
+        <meshStandardMaterial color="#F0F8FF" opacity={0.95} transparent={true} flatShading emissive="#E6F3FF" emissiveIntensity={0.15} />
+      </mesh>
+    </group>
+  );
+}
+
 // Komponent krzaka w stylu low-poly
 function Bush({ position, size = 1 }) {
   const bushRef = useRef();
@@ -326,7 +372,7 @@ function Board({ plantedTrees = [], onSquareClick, selectedTreeType, isSpectatin
         </group>
       ))}
       
-      {/* Chmurki pod platformą - bardzo dużo białych chmur w stylu low-poly */}
+      {/* Chmurki pod platformą - mieszanka dwóch rodzajów chmur */}
       {useMemo(() => {
         const clouds = [];
         const cloudY = -platformHeight - platformThickness - 1.5; // Pozycja pod platformą
@@ -337,16 +383,25 @@ function Board({ plantedTrees = [], onSquareClick, selectedTreeType, isSpectatin
             x: (Math.random() - 0.5) * platformSize * 2.5, // Szerszy zakres
             y: cloudY + (Math.random() - 0.5) * 2.0, // Większy zakres wysokości
             z: (Math.random() - 0.5) * platformSize * 2.5, // Szerszy zakres
-            size: 0.5 + Math.random() * 1.0 // Różne rozmiary
+            size: 0.5 + Math.random() * 1.0, // Różne rozmiary
+            type: Math.random() > 0.5 ? 'geometric' : 'round' // Losowy wybór typu chmurki
           });
         }
         return clouds;
       }, [platformSize, platformHeight, platformThickness]).map((cloud, index) => (
-        <Cloud 
-          key={`cloud-${index}`} 
-          position={{ x: cloud.x, y: cloud.y, z: cloud.z }} 
-          size={cloud.size} 
-        />
+        cloud.type === 'geometric' ? (
+          <Cloud 
+            key={`cloud-${index}`} 
+            position={{ x: cloud.x, y: cloud.y, z: cloud.z }} 
+            size={cloud.size} 
+          />
+        ) : (
+          <Cloud2 
+            key={`cloud2-${index}`} 
+            position={{ x: cloud.x, y: cloud.y, z: cloud.z }} 
+            size={cloud.size} 
+          />
+        )
       ))}
     </group>
   );

@@ -61,7 +61,7 @@
 .profile-header-btn {
   position: fixed;
   top: 15px;
-  left: 15px;
+  right: 15px;
   z-index: 1001;
   background: rgba(255, 255, 240, 0.3);
   border: 2px solid rgba(255, 255, 240, 0.4);
@@ -83,6 +83,54 @@
   border-color: #87AE73;
 }
 
+/* Nazwa aplikacji - MindGrow */
+.app-title-container {
+  position: fixed;
+  top: 20px;
+  left: 15px;
+  z-index: 1000;
+  text-align: left;
+  pointer-events: none;
+  display: inline-block;
+}
+
+.app-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #87AE73 0%, #9CAF88 50%, #B8D4A0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  text-shadow: 0 4px 20px rgba(135, 174, 115, 0.3);
+  letter-spacing: 2px;
+  animation: titleGlow 3s ease-in-out infinite;
+  line-height: 1.2;
+  position: relative;
+  display: inline-block;
+  z-index: 1;
+}
+
+.app-title-subtitle {
+  font-family: 'Manrope', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(45, 62, 45, 0.7);
+  margin-top: 2px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+@keyframes titleGlow {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
 .profile-avatar-small {
   width: 40px;
   height: 40px;
@@ -97,7 +145,7 @@
 .coins-display {
   position: fixed;
   top: 15px;
-  right: 15px;
+  right: 75px;
   z-index: 1001;
   background: rgba(255, 255, 240, 0.3);
   border: 2px solid rgba(255, 255, 240, 0.4);
@@ -566,10 +614,25 @@
   /* Rozdzielenie elementów na widoku telefonu */
   .profile-header-btn {
     top: 10px;
-    left: 10px;
+    right: 10px;
     width: 45px;
     height: 45px;
     z-index: 1001;
+  }
+
+  .app-title-container {
+    top: 10px;
+    left: 10px;
+  }
+
+  .app-title {
+    font-size: 24px;
+    letter-spacing: 1.5px;
+  }
+
+  .app-title-subtitle {
+    font-size: 9px;
+    letter-spacing: 1px;
   }
 
   .profile-avatar-small {
@@ -580,7 +643,7 @@
 
   .coins-display {
     top: 10px;
-    right: 10px;
+    right: 65px;
     padding: 8px 15px;
     font-size: 13px;
     z-index: 1001;
@@ -664,24 +727,85 @@
   text-align: center;
   background: #cfc5b0;
   backdrop-filter: blur(20px);
-  padding: 15px 25px;
-  border-radius: 20px;
+  padding: 20px 35px;
+  border-radius: 20px 20px 20px 20px / 20px 20px 20px 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(207, 197, 176, 0.5);
   min-width: auto;
   width: 100%;
-  max-width: 280px;
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  max-width: 360px;
+  transition: box-shadow 0.3s ease, transform 0.3s ease, border-radius 0.5s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animowany efekt borderRadius - organiczny kształt */
+.activity-display::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(135, 174, 115, 0.1) 0%, transparent 70%);
+  animation: borderRadiusPulse 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.activity-display > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes borderRadiusPulse {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    border-radius: 20px 20px 20px 20px / 20px 20px 20px 20px;
+  }
+  25% {
+    transform: scale(1.1) rotate(5deg);
+    border-radius: 25px 15px 25px 15px / 20px 25px 20px 25px;
+  }
+  50% {
+    transform: scale(1.05) rotate(-3deg);
+    border-radius: 18px 22px 18px 22px / 22px 18px 22px 18px;
+  }
+  75% {
+    transform: scale(1.08) rotate(2deg);
+    border-radius: 22px 18px 22px 18px / 18px 22px 18px 22px;
+  }
+}
+
+/* Alternatywnie - subtelny efekt hover na borderRadius */
+.activity-display:hover {
+  border-radius: 25px 15px 25px 15px / 20px 25px 20px 25px;
+  animation: borderRadiusFlow 3s ease-in-out infinite;
+}
+
+@keyframes borderRadiusFlow {
+  0%, 100% {
+    border-radius: 20px 20px 20px 20px / 20px 20px 20px 20px;
+  }
+  25% {
+    border-radius: 25px 15px 25px 15px / 20px 25px 20px 25px;
+  }
+  50% {
+    border-radius: 18px 22px 18px 22px / 22px 18px 22px 18px;
+  }
+  75% {
+    border-radius: 22px 18px 22px 18px / 18px 22px 18px 22px;
+  }
 }
 
 .activity-slogan {
-  font-size: 15px;
+  font-size: 22px;
   font-weight: bold;
   color: #FFFFE3;
   margin-bottom: 18px;
   text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
   font-family: 'Manrope', sans-serif;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
 
 .activity-status {

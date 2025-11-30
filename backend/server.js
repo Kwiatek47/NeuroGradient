@@ -11,6 +11,7 @@ let lastFocusScore = 0;
 let lastFocusTimestamp = null;
 let sessionActive = false;
 let sessionStartTime = null;
+let sessionFocusHistory = []; // Historia focus score dla aktualnej sesji
 
 // Endpoint do rozpoczęcia sesji
 app.post('/api/session/start', (req, res) => {
@@ -19,6 +20,7 @@ app.post('/api/session/start', (req, res) => {
   // Resetujemy score na początku sesji, aby drzewo zaczęło rosnąć od zera
   lastFocusScore = 0;
   lastFocusTimestamp = null;
+  sessionFocusHistory = []; // Reset historii focus score
   console.log(`[SESSION] Started at ${new Date(sessionStartTime).toISOString()}`);
   res.json({ success: true, sessionStartTime });
 });
@@ -28,8 +30,34 @@ app.post('/api/session/stop', (req, res) => {
   sessionActive = false;
   const sessionDuration = sessionStartTime ? Date.now() - sessionStartTime : 0;
   console.log(`[SESSION] Stopped. Duration: ${Math.floor(sessionDuration / 1000)}s`);
+  
+  // Oblicz statystyki focus score dla sesji
+  let focusStats = {
+    averageScore: 0,
+    maxScore: 0,
+    minScore: 0,
+    positiveTime: 0, // Czas z dodatnim focus score
+    totalSamples: sessionFocusHistory.length
+  };
+  
+  if (sessionFocusHistory.length > 0) {
+    const scores = sessionFocusHistory.map(h => h.score);
+    focusStats.averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+    focusStats.maxScore = Math.max(...scores);
+    focusStats.minScore = Math.min(...scores);
+    focusStats.positiveTime = scores.filter(s => s > 0).length / scores.length; // Procent czasu z dodatnim score
+  }
+  
+  const historyCopy = [...sessionFocusHistory];
   sessionStartTime = null;
-  res.json({ success: true, duration: sessionDuration });
+  sessionFocusHistory = [];
+  
+  res.json({ 
+    success: true, 
+    duration: sessionDuration,
+    focusStats: focusStats,
+    focusHistory: historyCopy // Opcjonalnie zwróć całą historię
+  });
 });
 
 // Endpoint do odbierania danych z skryptu EEG (POST)
@@ -42,6 +70,14 @@ app.post('/api/focus-data', (req, res) => {
   
   lastFocusScore = score;
   lastFocusTimestamp = timestamp || Date.now();
+  
+  // Zapisz do historii sesji jeśli sesja jest aktywna
+  if (sessionActive) {
+    sessionFocusHistory.push({
+      score: score,
+      timestamp: lastFocusTimestamp
+    });
+  }
   
   console.log(`[EEG] Focus score: ${score.toFixed(3)}`);
   res.json({ success: true });
