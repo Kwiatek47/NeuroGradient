@@ -82,8 +82,8 @@ class AdvancedFocusDetector:
         nperseg = min(256, len(data))
         freqs, psd = welch(data, self.sfreq, nperseg=nperseg, axis=0)
         
-        # Uśredniamy PSD po wszystkich kanałach (globalne skupienie)
-        avg_psd = np.mean(psd, axis=1) # Teraz mamy (freqs,)
+        channel_weights = np.array([1.0, 1.0, 0.3, 0.3, 0.8, 0.8, 0.2, 0.2])
+        avg_psd = np.average(psd, axis=1, weights=channel_weights) # Teraz mamy (freqs,)
         
         # Definicje pasm [cite: 272]
         # Theta: 4-8 Hz, Alpha: 8-12 Hz, Beta: 12-30 Hz
