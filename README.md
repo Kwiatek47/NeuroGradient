@@ -1,4 +1,5 @@
 # 🌳 NeuroGradient
+<img width="546" height="419" alt="Main-Site" src="https://github.com/user-attachments/assets/1f51b06a-54fa-41da-bb27-9bf2343a471d" />
 
 **NeuroGradient** is an innovative focus and time management application that uses neurofeedback from EEG devices to visualize concentration levels in real-time. The app combines proven flow state induction techniques with gamification, where your focus grows as a visual tree.
 
@@ -14,6 +15,11 @@
 - [Troubleshooting](#-troubleshooting)
 
 ## ✨ Features
+<img width="547" height="419" alt="Shop-Music" src="https://github.com/user-attachments/assets/727c892b-7481-4652-9de3-44cd9d68c385" />
+<img width="546" height="420" alt="Rank" src="https://github.com/user-attachments/assets/79496246-f4a6-463e-adf8-aef302486568" />
+<img width="544" height="358" alt="Calendar" src="https://github.com/user-attachments/assets/d38b7364-7d8e-41e8-8712-90501149023c" />
+<img width="918" height="419" alt="INTRO" src="https://github.com/user-attachments/assets/6302c2a1-c0ba-4643-ae62-3b9996892723" />
+<img width="919" height="417" alt="Friends-Forest" src="https://github.com/user-attachments/assets/e753a8c7-c80e-4e61-bd34-b85cee3e72ec" />
 
 ### 🎯 Main Features
 
@@ -21,6 +27,7 @@
 - **Visual Tree** - Tree grows and blooms depending on your concentration level
 - **Gamification** - Seed system (currency), shop with items, and challenges
 - **Activity Calendar** - Activity visualization like GitHub (contribution graph)
+
 - **Statistics & Analytics** - Detailed charts and session statistics
 - **Website Blocker** - Chrome extension to block distracting websites during sessions
 
