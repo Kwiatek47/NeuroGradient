@@ -82,7 +82,7 @@ class AdvancedFocusDetector:
         nperseg = min(256, len(data))
         freqs, psd = welch(data, self.sfreq, nperseg=nperseg, axis=0)
         
-        channel_weights = np.array([0.5, 0.5, 1.0, 1.0, 0.5, 0.5, 0.3, 0.3])
+        channel_weights = np.array([1.0, 1.0, 0.3, 0.3, 0.8, 0.8, 0.2, 0.2])
         avg_psd = np.average(psd, axis=1, weights=channel_weights) # Teraz mamy (freqs,)
         
         # Definicje pasm [cite: 272]
