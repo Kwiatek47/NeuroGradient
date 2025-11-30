@@ -22,14 +22,18 @@
             padding: 15px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 280px;
         }
     </style>
 </head>
 <body>
     <div id="ui">
         <h2>Growing Mind Tree</h2>
-        <p>prototyp: Move mouse Left (Distracted) &harr; Right (Focused)</p>
-        <p>Focus: <span id="val">0</span>%</p>
+        <p><strong>Tryb Focus (Slow)</strong></p>
+        <p>Input 0.5 = 5 minut do pełnego wzrostu.</p>
+        <hr>
+        <p>Input P: <span id="val-p">0.00</span></p>
+        <p>Stan Drzewa: <span id="val-maturity">0.0</span>%</p>
     </div>
     <canvas id="canvas"></canvas>
 
@@ -39,10 +43,28 @@
         let width, height;
 
         // --- STATE VARIABLES ---
+
+        let inputP = 0;
+        let treeMaturity = 0;
+
+        // Zmienne wizualne
         let focusLevel = 0;
         let currentTreeSize = 0;
-        let time = 0; // For wind animation
+        let currentBloomLevel = 0;
+
+        let time = 0;
         let fallingLeaves = [];
+        let branchBloomState = new Map();
+
+        // --- KONFIGURACJA PRĘDKOŚCI ---
+
+        // Obliczenie: 5 minut (300s) przy input 0.5
+        // 300s * 60fps = 18000 klatek.
+        // 1.0 (pełne drzewo) / (18000 * 0.5) = ~0.000111
+        const GROWTH_SPEED = 0.000111;
+
+        const MAX_TREE_SIZE = 180;
+        const MIN_TREE_SIZE = 80;
 
         function resize() {
             width = window.innerWidth;
@@ -54,90 +76,101 @@
         resize();
 
         // --- ORGANIC TREE DRAWING ---
-        function drawTree(x, y, len, angle, width) {
+        function drawTree(x, y, len, angle, width, key) {
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(angle * Math.PI / 180);
 
-            // 1. Draw the Branch (Curved, not straight)
             ctx.beginPath();
             ctx.moveTo(0, 0);
 
-            // Curve the branch slightly based on width (older branches curve less)
             let curveX = width * 0.3;
             ctx.quadraticCurveTo(curveX, -len/2, 0, -len);
 
-            ctx.strokeStyle = '#3E2723'; // Dark Bark
+            ctx.strokeStyle = '#3E2723';
             ctx.lineWidth = width;
             ctx.lineCap = 'round';
             ctx.stroke();
 
-            // Move to end of branch
             ctx.translate(0, -len);
 
-            // 2. Recursion Limit
             if (len < 15) {
-                // DRAW LEAVES / FLOWERS
-                // Only if tree is grown enough and focus is decent
-                if (currentTreeSize > 100 && focusLevel > 0.2) {
+                if (treeMaturity > 0.2) {
                     drawNaturalLeaf();
+
+                    // LOGIKA KWIATÓW (STATYCZNE)
+                    let hasBloom = branchBloomState.has(key);
+
+                    if (hasBloom) {
+                        drawFlower(currentBloomLevel);
+
+                        // Usychanie
+                        if (currentBloomLevel < 0.1) {
+                            branchBloomState.delete(key);
+                        }
+
+                    } else if (currentBloomLevel > 0.6 && Math.random() < currentBloomLevel * 0.005) {
+                        // Powstawanie
+                        drawFlower(currentBloomLevel);
+                        branchBloomState.set(key, true);
+                    }
                 }
                 ctx.restore();
                 return;
             }
 
-            // 3. CALCULATE ANGLES & WIND
+            // CALCULATE ANGLES & WIND
+            let wind = Math.sin(time + len * 0.05) * (2 + (1 - treeMaturity) * 3);
+            let spread = 25 + (treeMaturity * 15);
 
-            let wind = Math.sin(time + len * 0.05) * (2 + (1 - focusLevel) * 3);
+            drawTree(0, 0, len * 0.8, spread + wind, width * 0.7, key + 'R');
+            drawTree(0, 0, len * 0.65, -spread - 10 + wind, width * 0.7, key + 'L');
 
-            // Base angle spreads out as focus increases
-            let spread = 25 + (focusLevel * 15);
-
-            // 4. BRANCHING (Asymmetry is key here!)
-
-            // Branch A (Right - Dominant)
-            // It's longer (0.8) and slightly thinner (0.7)
-            drawTree(0, 0, len * 0.8, spread + wind, width * 0.7);
-
-            // Branch B (Left - Submissive)
-            // It's shorter (0.65) and angles differently (-spread - 10)
-            drawTree(0, 0, len * 0.65, -spread - 10 + wind, width * 0.7);
-
-            // Branch C (Occasional middle branch for density)
-            // Only appears on thicker branches to fill gaps
             if (len > 40) {
-                drawTree(0, 0, len * 0.5, wind, width * 0.6);
+                drawTree(0, 0, len * 0.5, wind, width * 0.6, key + 'C');
             }
 
             ctx.restore();
         }
 
         function drawNaturalLeaf() {
-            // Size breathes with focus
-            let size = (focusLevel * 8) + 2;
+            let size = (treeMaturity * 8) + 2;
 
-            // Color shifts from Green (low focus) to Pink (high focus)
-            // R: Starts at 180 (Pale), goes down to 30 (Darker)
-            let r = 180 + (focusLevel * -150);
-
-            // G: Starts at 255 (Max Brightness), goes down to 180 (Rich Green)
-            let g = 255 + (focusLevel * -75);
-
-            // B: Starts at 120 (Yellowish tint), goes down to 30 (Pure Green)
-            let b = 110 + (focusLevel * -90);
+            let r = 180 + (treeMaturity * -150);
+            let g = 255 + (treeMaturity * -75);
+            let b = 110 + (treeMaturity * -90);
 
             ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
 
-
             ctx.beginPath();
-            // Draw an ellipse (oval) instead of a perfect circle
             ctx.ellipse(0, 0, size, size/2, Math.PI/4, 0, Math.PI*2);
             ctx.fill();
         }
 
-        // add flowers that bloom
+        function drawFlower(bloomFactor) {
+            const petalCount = 5;
+            const petalLength = 2 + (bloomFactor * 10);
 
+            const petalColor = 'rgba(255, 192, 203, 0.9)';
+            const centerColor = '#FFD700';
 
+            ctx.save();
+
+            ctx.fillStyle = petalColor;
+            for (let i = 0; i < petalCount; i++) {
+                ctx.rotate((2 * Math.PI) / petalCount);
+                ctx.beginPath();
+                ctx.ellipse(petalLength / 3, 0, petalLength * 0.5, petalLength * 0.3, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = centerColor;
+            ctx.beginPath();
+            ctx.arc(0, 0, petalLength * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
 
         // --- FALLING LEAVES ---
         function spawnLeaf() {
@@ -149,7 +182,7 @@
                 swayFreq: Math.random() * 0.1,
                 swayAmp: Math.random() * 2,
                 angle: Math.random() * 360,
-                color: Math.random() > 0.5 ? '#74C476' : '#00441B' // Orange or Gold
+                color: Math.random() > 0.5 ? '#FFD700' : '#FFA07A'
             });
         }
 
@@ -177,39 +210,63 @@
         // --- MAIN LOOP ---
         function animate() {
             ctx.clearRect(0, 0, width, height);
-
-            // Update time for wind animation
             time += 0.03;
 
-            // Smooth growth animation
-            let targetSize = 80 + (focusLevel * 100);
-            currentTreeSize += (targetSize - currentTreeSize) * 0.05;
+            // --- GŁÓWNA LOGIKA WZROSTU OPARTA NA INPUT P ---
 
-            // Start Drawing Tree from bottom center
-            // Initial trunk width = 25
+            treeMaturity += inputP * GROWTH_SPEED;
+
+            if (treeMaturity > 1.0) treeMaturity = 1.0;
+            if (treeMaturity < 0.0) treeMaturity = 0.0;
+
+            // Mapowanie na wizualia
+            focusLevel = treeMaturity;
+
+            let targetSize = MIN_TREE_SIZE + (treeMaturity * (MAX_TREE_SIZE - MIN_TREE_SIZE));
+            currentTreeSize += (targetSize - currentTreeSize) * 0.1;
+
+            let targetBloom = 0;
+            if (treeMaturity > 0.8) {
+                targetBloom = (treeMaturity - 0.8) * 5;
+            }
+            currentBloomLevel += (targetBloom - currentBloomLevel) * 0.05;
+
+
             if (currentTreeSize > 10) {
-                drawTree(width / 2, height, currentTreeSize, 0, 22);
+                drawTree(width / 2, height, currentTreeSize, 0, 22, 'S');
             }
 
-            // Update falling leaves
+            // Spadanie liści - rzadziej, bo proces jest wolniejszy
+            if (inputP < -0.1 && treeMaturity < 0.5) {
+                 if (Math.random() > 0.95) spawnLeaf(); // Jeszcze rzadziej
+            }
+
             updateLeaves();
+
+            // Wyświetlaj z większą dokładnością (1 miejsce po przecinku)
+            document.getElementById('val-maturity').innerText = (treeMaturity * 100).toFixed(1);
 
             requestAnimationFrame(animate);
         }
 
         // --- INPUT SIMULATION ---
         window.addEventListener('mousemove', (e) => {
-            let percent = e.clientX / width;
-            focusLevel = percent;
+            let centerX = width / 2;
+            let mouseX = e.clientX;
+            let dist = mouseX - centerX;
+            let p = dist / centerX;
 
-            // If focus is low, shake the tree and drop leaves
-            if (focusLevel < 0.1) {
-                if (Math.random() > focusLevel + 0.4) {
-                    spawnLeaf();
-                }
-            }
+            if (p > 1) p = 1;
+            if (p < -1) p = -1;
+            if (Math.abs(p) < 0.05) p = 0;
 
-            document.getElementById('val').innerText = Math.round(focusLevel * 100);
+            inputP = p;
+
+            document.getElementById('val-p').innerText = inputP.toFixed(2);
+            let ui = document.getElementById('ui');
+            if(p > 0) ui.style.borderLeft = "5px solid green";
+            else if (p < 0) ui.style.borderLeft = "5px solid brown";
+            else ui.style.borderLeft = "5px solid gray";
         });
 
         animate();
