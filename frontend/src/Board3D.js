@@ -43,24 +43,24 @@ function Cloud({ position, size = 1 }) {
       {/* Główna część chmurki - bardziej geometryczna (mniej segmentów dla low-poly) */}
       <mesh position={[0, 0, 0]}>
         <dodecahedronGeometry args={[cloudSize, 0]} />
-        <meshStandardMaterial color="#FFFFFF" opacity={0.9} transparent flatShading />
+        <meshStandardMaterial color="#FFFFFF" opacity={1.0} transparent={false} flatShading emissive="#FFFFFF" emissiveIntensity={0.2} />
       </mesh>
       {/* Dodatkowe geometryczne kształty dla bardziej naturalnego wyglądu */}
       <mesh position={[cloudSize * 0.6, cloudSize * 0.3, 0]}>
         <octahedronGeometry args={[cloudSize * 0.7, 0]} />
-        <meshStandardMaterial color="#FFFFFF" opacity={0.85} transparent flatShading />
+        <meshStandardMaterial color="#FFFFFF" opacity={1.0} transparent={false} flatShading emissive="#FFFFFF" emissiveIntensity={0.2} />
       </mesh>
       <mesh position={[-cloudSize * 0.6, cloudSize * 0.2, 0]}>
         <icosahedronGeometry args={[cloudSize * 0.6, 0]} />
-        <meshStandardMaterial color="#FFFFFF" opacity={0.85} transparent flatShading />
+        <meshStandardMaterial color="#FFFFFF" opacity={1.0} transparent={false} flatShading emissive="#FFFFFF" emissiveIntensity={0.2} />
       </mesh>
       <mesh position={[cloudSize * 0.3, -cloudSize * 0.2, cloudSize * 0.4]}>
         <tetrahedronGeometry args={[cloudSize * 0.5, 0]} />
-        <meshStandardMaterial color="#FFFFFF" opacity={0.8} transparent flatShading />
+        <meshStandardMaterial color="#FFFFFF" opacity={1.0} transparent={false} flatShading emissive="#FFFFFF" emissiveIntensity={0.2} />
       </mesh>
       <mesh position={[-cloudSize * 0.4, -cloudSize * 0.1, -cloudSize * 0.3]}>
         <dodecahedronGeometry args={[cloudSize * 0.55, 0]} />
-        <meshStandardMaterial color="#FFFFFF" opacity={0.8} transparent flatShading />
+        <meshStandardMaterial color="#FFFFFF" opacity={1.0} transparent={false} flatShading emissive="#FFFFFF" emissiveIntensity={0.2} />
       </mesh>
     </group>
   );
@@ -330,7 +330,7 @@ function Board({ plantedTrees = [], onSquareClick, selectedTreeType, isSpectatin
       {useMemo(() => {
         const clouds = [];
         const cloudY = -platformHeight - platformThickness - 1.5; // Pozycja pod platformą
-        const numClouds = 40; // Bardzo dużo chmur
+        const numClouds = 70; // Więcej chmur
         
         for (let i = 0; i < numClouds; i++) {
           clouds.push({

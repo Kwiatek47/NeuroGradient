@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './App.css';
 import Board3D from './Board3D';
+import GrowingTree from './GrowingTree';
+import IntroScreen from './IntroScreen';
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -36,6 +38,8 @@ function App() {
   const atmosphereAudioRef = useRef(null); // referencja do elementu audio (atmosfera)
   const [sessionStartTime, setSessionStartTime] = useState(null); // czas rozpoczęcia sesji
   const [sessionDuration, setSessionDuration] = useState(0); // czas trwania sesji w sekundach
+  const [focusScore, setFocusScore] = useState(0); // Score z EEG (-1.0 do 1.0)
+  const [eegConnected, setEegConnected] = useState(false); // Status połączenia z EEG
   const [sessionsHistory, setSessionsHistory] = useState(() => {
     // Ładowanie historii sesji z localStorage
     const saved = localStorage.getItem('sessionsHistory');
@@ -61,12 +65,16 @@ function App() {
   });
   const [breathingExercises, setBreathingExercises] = useState(() => {
     const saved = localStorage.getItem('breathingExercises');
-    return saved ? JSON.parse(saved) : { enabled: false, duration: 60 };
+    return saved ? JSON.parse(saved) : { enabled: true, duration: 60 };
   });
   const [sessionConfig, setSessionConfig] = useState(() => {
     const saved = localStorage.getItem('sessionConfig');
-    return saved ? JSON.parse(saved) : { defaultDuration: 25, autoStart: false };
+    return saved ? JSON.parse(saved) : { defaultDuration: 25, autoStart: false, showTimer: true };
   });
+  const [showSessionSummary, setShowSessionSummary] = useState(false);
+  const [sessionSummaryData, setSessionSummaryData] = useState(null);
+  const [showIntro, setShowIntro] = useState(false);
+  const introAudioRef = useRef(null);
   const [blockedUrls, setBlockedUrls] = useState(() => {
     const saved = localStorage.getItem('blockedUrls');
     return saved ? JSON.parse(saved) : [];
@@ -396,11 +404,58 @@ function App() {
   }, [isActive, isPaused, sessionStartTime]);
 
   const startActivity = () => {
+    // Najpierw pokaż intro
+    setShowIntro(true);
+  };
+  
+  const handleIntroComplete = () => {
+    // Po zakończeniu intro rozpocznij właściwą sesję
+    setShowIntro(false);
     setIsActive(true);
     setIsPaused(false);
     setSessionStartTime(Date.now());
     setSessionDuration(0);
+    
+    // Zatrzymaj muzykę intro jeśli była odtwarzana
+    if (introAudioRef.current) {
+      introAudioRef.current.pause();
+      introAudioRef.current.src = '';
+    }
   };
+
+  // Funkcja do pobierania danych z backendu (EEG)
+  useEffect(() => {
+    if (!isActive) {
+      setFocusScore(0);
+      setEegConnected(false);
+      return;
+    }
+
+    // Użyj zmiennej środowiskowej lub fallback do localhost
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    
+    // Polling - pobieraj dane co 200ms (zgodnie z UPDATE_INTERVAL w skrypcie EEG)
+    const focusInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/focus-data`);
+        const data = await response.json();
+        
+        if (data.isActive && data.score !== undefined) {
+          setFocusScore(data.score);
+          setEegConnected(true);
+        } else {
+          setFocusScore(0);
+          setEegConnected(false);
+        }
+      } catch (error) {
+        console.error('Error fetching focus data:', error);
+        setFocusScore(0);
+        setEegConnected(false);
+      }
+    }, 200); // Polling co 200ms
+
+    return () => clearInterval(focusInterval);
+  }, [isActive]);
 
   const pauseActivity = () => {
     setIsPaused(true);
@@ -423,19 +478,60 @@ function App() {
       const today = new Date();
       const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
+      const sessionData = {
+        startTime: sessionStartTime,
+        duration: sessionDuration,
+        endTime: Date.now()
+      };
+      
       const newSessions = { ...sessionsHistory };
       if (!newSessions[dateKey]) {
         newSessions[dateKey] = [];
       }
       
-      newSessions[dateKey].push({
-        startTime: sessionStartTime,
-        duration: sessionDuration,
-        endTime: Date.now()
-      });
+      newSessions[dateKey].push(sessionData);
       
       setSessionsHistory(newSessions);
       localStorage.setItem('sessionsHistory', JSON.stringify(newSessions));
+      
+      // Przyznaj nasionka za czas trwania sesji (1 minuta = 1 nasionko)
+      const coinsEarned = Math.floor(sessionDuration / 60); // Zaokrąglij w dół do pełnych minut
+      if (coinsEarned > 0) {
+        setCoins(prev => {
+          const newCoins = prev + coinsEarned;
+          localStorage.setItem('coins', newCoins.toString());
+          return newCoins;
+        });
+      }
+      
+      // Pokaż podsumowanie sesji
+      const formatTime = (seconds) => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        if (hours > 0) {
+          return `${hours}h ${minutes}min ${secs}s`;
+        }
+        return `${minutes}min ${secs}s`;
+      };
+      
+      // Oblicz statystyki dnia (po dodaniu nowej sesji)
+      const dayStats = getDayStats(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      setSessionSummaryData({
+        duration: sessionDuration,
+        durationFormatted: formatTime(sessionDuration),
+        date: dateKey,
+        startTime: new Date(sessionStartTime).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+        endTime: new Date(Date.now()).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+        coinsEarned: coinsEarned,
+        // Statystyki dnia
+        totalSessions: dayStats.totalSessions,
+        totalTimeFormatted: dayStats.totalTimeFormatted,
+        longestFormatted: dayStats.longestFormatted,
+        averageFormatted: dayStats.averageFormatted
+      });
+      setShowSessionSummary(true);
     }
     
     setIsActive(false);
@@ -443,6 +539,8 @@ function App() {
     setSessionStartTime(null);
     setSessionDuration(0);
     setPausedAt(null);
+    setFocusScore(0); // Resetuj focus score
+    setEegConnected(false);
   };
 
   // Funkcja do obliczania statystyk dla danego dnia
@@ -517,6 +615,7 @@ function App() {
       {/* Element audio do odtwarzania muzyki */}
       <audio ref={audioRef} />
       <audio ref={atmosphereAudioRef} />
+      <audio ref={introAudioRef} />
       
       {/* Profil w lewym górnym rogu */}
       <button 
@@ -943,61 +1042,102 @@ function App() {
         />
       )}
 
-      {/* Plansza 3D */}
-      <div className={`board-container ${spectatingUserId ? 'spectating-mode' : ''}`}>
-        {spectatingUserId ? (
-          <div className="spectating-wrapper">
-            <div className="spectating-header">
-              <button 
-                className="spectating-back-btn"
-                onClick={() => setSpectatingUserId(null)}
-                title="Powrót do mojego lasu"
-              >
-                🌳 Mój las
-              </button>
-              <div className="spectating-user-info">
-                {(() => {
-                  const user = leaderboardUsers.find(u => u.id === spectatingUserId);
-                  return user ? (
-                    <>
-                      <span className="spectating-avatar">{user.avatar}</span>
-                      <span className="spectating-name">{user.name}</span>
-                    </>
-                  ) : null;
-                })()}
+      {/* Intro Screen */}
+      {showIntro && (
+        <IntroScreen
+          onComplete={handleIntroComplete}
+          introMusic={introMusic}
+          breathingEnabled={breathingExercises.enabled}
+          breathingDuration={breathingExercises.duration}
+          shopItems={shopItems}
+        />
+      )}
+
+      {/* Drzewo podczas sesji */}
+      {isActive && !showIntro && (
+        <GrowingTree 
+          inputP={focusScore} 
+          onStop={stopActivity}
+          showTimer={sessionConfig.showTimer}
+          sessionDuration={sessionDuration}
+        />
+      )}
+
+      {/* Plansza 3D - ukryta podczas sesji */}
+      {!isActive && (
+        <div className={`board-container ${spectatingUserId ? 'spectating-mode' : ''}`}>
+          {spectatingUserId ? (
+            <div className="spectating-wrapper">
+              <div className="spectating-header">
+                <button 
+                  type="button"
+                  className="spectating-back-btn"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSpectatingUserId(null);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSpectatingUserId(null);
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSpectatingUserId(null);
+                  }}
+                  title="Powrót do mojego lasu"
+                >
+                  🌳 Mój las
+                </button>
+                <div className="spectating-user-info">
+                  {(() => {
+                    const user = leaderboardUsers.find(u => u.id === spectatingUserId);
+                    return user ? (
+                      <>
+                        <span className="spectating-avatar">{user.avatar}</span>
+                        <span className="spectating-name">{user.name}</span>
+                      </>
+                    ) : null;
+                  })()}
+                </div>
               </div>
+              <Board3D
+                plantedTrees={(() => {
+                  // Symulacja drzew użytkownika (w prawdziwej aplikacji byłoby z backendu)
+                  const user = leaderboardUsers.find(u => u.id === spectatingUserId);
+                  if (!user) return [];
+                  // Generuj przykładowe drzewa dla spectating
+                  const mockTrees = [];
+                  for (let i = 0; i < Math.min(user.trees, 64); i++) {
+                    mockTrees.push({
+                      id: `spectating-${i}`,
+                      row: Math.floor(i / 8),
+                      col: i % 8,
+                      type: ['normal', 'christmas', 'cherry'][Math.floor(Math.random() * 3)]
+                    });
+                  }
+                  return mockTrees;
+                })()}
+                onSquareClick={null}
+                selectedTreeType={null}
+                isSpectating={true}
+              />
             </div>
-            <Board3D
-              plantedTrees={(() => {
-                // Symulacja drzew użytkownika (w prawdziwej aplikacji byłoby z backendu)
-                const user = leaderboardUsers.find(u => u.id === spectatingUserId);
-                if (!user) return [];
-                // Generuj przykładowe drzewa dla spectating
-                const mockTrees = [];
-                for (let i = 0; i < Math.min(user.trees, 64); i++) {
-                  mockTrees.push({
-                    id: `spectating-${i}`,
-                    row: Math.floor(i / 8),
-                    col: i % 8,
-                    type: ['normal', 'christmas', 'cherry'][Math.floor(Math.random() * 3)]
-                  });
-                }
-                return mockTrees;
-              })()}
-              onSquareClick={null}
-              selectedTreeType={null}
-              isSpectating={true}
+          ) : (
+            <Board3D 
+              plantedTrees={plantedTrees} 
+              onSquareClick={plantTree}
+              selectedTreeType={selectedTreeType}
+              isSpectating={false}
             />
-          </div>
-        ) : (
-          <Board3D 
-            plantedTrees={plantedTrees} 
-            onSquareClick={plantTree}
-            selectedTreeType={selectedTreeType}
-            isSpectating={false}
-          />
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Box aktywności */}
       <div className="activity-container">
@@ -1588,6 +1728,25 @@ function App() {
                     <span className="toggle-slider"></span>
                   </label>
                 </div>
+
+                <div className="settings-item">
+                  <div className="settings-item-info">
+                    <span className="settings-item-label">Wyświetlaj timer</span>
+                    <span className="settings-item-description">Pokaż timer podczas sesji</span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={sessionConfig.showTimer !== false}
+                      onChange={(e) => {
+                        const newValue = { ...sessionConfig, showTimer: e.target.checked };
+                        setSessionConfig(newValue);
+                        localStorage.setItem('sessionConfig', JSON.stringify(newValue));
+                      }}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
               </div>
 
               {/* Sekcja 3: Zablokowane strony */}
@@ -1774,6 +1933,96 @@ function App() {
                   </>
                 );
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Podsumowanie sesji */}
+      {showSessionSummary && sessionSummaryData && (
+        <div className="session-summary-overlay" onClick={() => setShowSessionSummary(false)}>
+          <div className="session-summary" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="session-summary-close" 
+              onClick={() => setShowSessionSummary(false)}
+            >
+              ×
+            </button>
+            <div className="session-summary-header">
+              <div className="session-summary-icon">🌳</div>
+              <h2>Sesja zakończona!</h2>
+              <p className="session-summary-subtitle">Świetna robota!</p>
+            </div>
+            
+            <div className="session-summary-stats">
+              <div className="session-summary-stat-card main">
+                <div className="session-summary-stat-icon">⏱️</div>
+                <div className="session-summary-stat-value">{sessionSummaryData.durationFormatted}</div>
+                <div className="session-summary-stat-label">Czas trwania</div>
+              </div>
+              
+              {sessionSummaryData.coinsEarned > 0 && (
+                <div className="session-summary-stat-card coins-earned">
+                  <div className="session-summary-stat-icon">🌱</div>
+                  <div className="session-summary-stat-value">+{sessionSummaryData.coinsEarned}</div>
+                  <div className="session-summary-stat-label">Zdobyte nasionka</div>
+                </div>
+              )}
+              
+              <div className="session-summary-stats-grid">
+                <div className="session-summary-stat-card">
+                  <div className="session-summary-stat-icon">🕐</div>
+                  <div className="session-summary-stat-value">{sessionSummaryData.startTime}</div>
+                  <div className="session-summary-stat-label">Rozpoczęcie</div>
+                </div>
+                
+                <div className="session-summary-stat-card">
+                  <div className="session-summary-stat-icon">🕐</div>
+                  <div className="session-summary-stat-value">{sessionSummaryData.endTime}</div>
+                  <div className="session-summary-stat-label">Zakończenie</div>
+                </div>
+              </div>
+
+              <div className="session-summary-section-divider">
+                <h3 className="session-summary-section-title">Statystyki dnia</h3>
+              </div>
+
+              <div className="session-summary-stats-grid">
+                <div className="session-summary-stat-card">
+                  <div className="session-summary-stat-icon">📊</div>
+                  <div className="session-summary-stat-value">{sessionSummaryData.totalSessions || 1}</div>
+                  <div className="session-summary-stat-label">Ukończone sesje</div>
+                </div>
+                
+                <div className="session-summary-stat-card">
+                  <div className="session-summary-stat-icon">⏰</div>
+                  <div className="session-summary-stat-value">{sessionSummaryData.totalTimeFormatted || '0 min'}</div>
+                  <div className="session-summary-stat-label">Całkowity czas</div>
+                </div>
+              </div>
+
+              <div className="session-summary-stats-grid">
+                <div className="session-summary-stat-card">
+                  <div className="session-summary-stat-icon">🏆</div>
+                  <div className="session-summary-stat-value">{sessionSummaryData.longestFormatted || '0 min'}</div>
+                  <div className="session-summary-stat-label">Najdłuższa sesja</div>
+                </div>
+                
+                <div className="session-summary-stat-card">
+                  <div className="session-summary-stat-icon">📈</div>
+                  <div className="session-summary-stat-value">{sessionSummaryData.averageFormatted || '0 min'}</div>
+                  <div className="session-summary-stat-label">Średni czas</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="session-summary-footer">
+              <button 
+                className="session-summary-btn"
+                onClick={() => setShowSessionSummary(false)}
+              >
+                Zamknij
+              </button>
             </div>
           </div>
         </div>

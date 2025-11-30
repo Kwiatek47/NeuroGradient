@@ -226,7 +226,7 @@
 .menu-content h2 {
   margin-bottom: 20px;
   color: #87AE73;
-  font-size: 17px;
+  font-size: 22px;
   font-family: 'Manrope', sans-serif;
 }
 
@@ -239,7 +239,7 @@
   border: 2px solid #d4d4c4;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 14px;
   transition: all 0.3s ease;
   text-align: left;
   color: #2d3e2d;
@@ -508,6 +508,16 @@
   width: 100%;
   height: 100%;
   position: relative;
+  pointer-events: auto;
+}
+
+/* Upewnij się, że canvas nie blokuje przycisku w trybie spectating */
+.spectating-wrapper .board-3d-container {
+  pointer-events: none;
+}
+
+.spectating-wrapper .board-3d-container canvas {
+  pointer-events: none !important;
 }
 
 /* Większe ekrany - laptopy i większe */
@@ -538,6 +548,11 @@
 .board-3d-container canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+/* Wyłącz pointer-events dla canvas w trybie spectating, aby przycisk działał */
+.spectating-mode .board-3d-container canvas {
+  pointer-events: none !important;
 }
 
 @media (max-width: 768px) {
@@ -1034,7 +1049,7 @@
     cursor: pointer;
     padding: 8px 15px;
     color: #2d3e2d;
-  font-size: 10px;
+  font-size: 14px;
   font-family: 'Manrope', sans-serif;
     transition: all 0.3s ease;
   }
@@ -1405,7 +1420,7 @@
     6px 0 0 #FFFFE3;
 }
 
-/* Leaderboard/Ranking Icon - podium z trofeum */
+/* Leaderboard/Ranking Icon - proste podium z trzema stopniami */
 .icon-leaderboard {
   width: 24px;
   height: 24px;
@@ -1414,38 +1429,34 @@
 }
 
 .icon-leaderboard::before {
-  /* Podstawa podium */
+  /* Lewe podium (2. miejsce) - średnie */
   content: '';
   position: absolute;
-  width: 18px;
-  height: 5px;
+  width: 5px;
+  height: 10px;
   background: #FFFFE3;
   border: 2px solid #FFFFE3;
-  border-radius: 2px;
+  border-radius: 2px 2px 0 0;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 1px;
   box-sizing: border-box;
 }
 
 .icon-leaderboard::after {
-  /* Trofeum na podium */
+  /* Środkowe podium (1. miejsce) - najwyższe */
   content: '';
   position: absolute;
   width: 6px;
-  height: 10px;
+  height: 16px;
   background: #FFFFE3;
   border: 2px solid #FFFFE3;
-  border-radius: 3px 3px 0 0;
-  bottom: 5px;
+  border-radius: 2px 2px 0 0;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   box-sizing: border-box;
-  /* Rączka trofeum i podstawa */
-  box-shadow: 
-    0 10px 0 #FFFFE3,
-    -1.5px 10px 0 #FFFFE3,
-    1.5px 10px 0 #FFFFE3;
+  /* Prawe podium (3. miejsce) - najniższe */
+  box-shadow: 10px 0 0 #FFFFE3, 10px 0 0 2px #FFFFE3;
 }
 
 @media (max-width: 768px) {
@@ -1459,7 +1470,7 @@
 
 .calendar-year {
   text-align: center;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: bold;
   color: #2d3e2d;
   margin-bottom: 20px;
@@ -1482,7 +1493,7 @@
 
 .calendar-month-header {
   text-align: center;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: #2d3e2d;
   margin-bottom: 12px;
@@ -1599,14 +1610,14 @@
 }
 
 .profile-name {
-  font-size: 20px;
+  font-size: 24px;
   margin: 15px 0 5px;
   color: #2d3e2d;
   font-family: 'Manrope', sans-serif;
 }
 
 .profile-email {
-  font-size: 10px;
+  font-size: 14px;
   color: rgba(45, 62, 45, 0.7);
   margin: 0;
 }
@@ -1616,7 +1627,7 @@
 }
 
 .profile-stats h3 {
-  font-size: 17px;
+  font-size: 20px;
   color: #87AE73;
   margin-bottom: 15px;
   font-family: 'Manrope', sans-serif;
@@ -1655,7 +1666,7 @@
 
 .stat-label {
   display: block;
-  font-size: 10px;
+  font-size: 13px;
   color: rgba(45, 62, 45, 0.7);
   font-family: 'Manrope', sans-serif;
 }
@@ -1665,7 +1676,7 @@
 }
 
 .profile-achievements h3 {
-  font-size: 17px;
+  font-size: 20px;
   color: #87AE73;
   margin-bottom: 15px;
   font-family: 'Manrope', sans-serif;
@@ -1708,7 +1719,7 @@
 }
 
 .achievement-name {
-  font-size: 10px;
+  font-size: 13px;
   color: #2d3e2d;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
@@ -1716,7 +1727,7 @@
 }
 
 .achievement-reward {
-  font-size: 11px;
+  font-size: 13px;
   color: #87AE73;
   font-weight: bold;
   font-family: 'Manrope', sans-serif;
@@ -1732,7 +1743,7 @@
 }
 
 .profile-settings h3 {
-  font-size: 17px;
+  font-size: 20px;
   color: #87AE73;
   margin-bottom: 15px;
   font-family: 'Manrope', sans-serif;
@@ -2101,7 +2112,7 @@
 }
 
 .challenges-header h2 {
-  font-size: 24px;
+  font-size: 28px;
   color: #2d3e2d;
   margin-bottom: 8px;
   font-family: 'Manrope', sans-serif;
@@ -2109,7 +2120,7 @@
 }
 
 .challenges-subtitle {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(45, 62, 45, 0.7);
   font-family: 'Manrope', sans-serif;
 }
@@ -2152,7 +2163,7 @@
 }
 
 .challenge-name {
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 600;
   color: #2d3e2d;
   margin: 0 0 5px 0;
@@ -2160,7 +2171,7 @@
 }
 
 .challenge-description {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(45, 62, 45, 0.7);
   margin: 0;
   font-family: 'Manrope', sans-serif;
@@ -2218,7 +2229,7 @@
   background: #87AE73;
   color: #FFFFE3;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   text-align: center;
   font-family: 'Manrope', sans-serif;
@@ -2245,7 +2256,7 @@
   padding: 10px;
   background: rgba(207, 197, 176, 0.3);
   border-radius: 10px;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: bold;
   color: #2d3e2d;
   font-family: 'Manrope', sans-serif;
@@ -2308,21 +2319,21 @@
 }
 
 .shop-item-name {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: bold;
   color: #2d3e2d;
   font-family: 'Manrope', sans-serif;
 }
 
 .shop-item-description {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(45, 62, 45, 0.7);
   font-family: 'Manrope', sans-serif;
   margin-bottom: 10px;
 }
 
 .shop-item-effect {
-  font-size: 10px;
+  font-size: 12px;
   color: #87AE73;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
@@ -2452,7 +2463,7 @@
 }
 
 .shop-category-title {
-  font-size: 10px;
+  font-size: 14px;
   color: #87AE73;
   margin-bottom: 12px;
   font-family: 'Manrope', sans-serif;
@@ -2546,7 +2557,7 @@
 }
 
 .settings-section-title {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   color: #87AE73;
   margin-bottom: 15px;
@@ -2573,14 +2584,14 @@
 }
 
 .settings-item-label {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #2d3e2d;
   font-family: 'Manrope', sans-serif;
 }
 
 .settings-item-description {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(45, 62, 45, 0.7);
   font-family: 'Manrope', sans-serif;
 }
@@ -2633,7 +2644,7 @@
 }
 
 .leaderboard-header h2 {
-  font-size: 24px;
+  font-size: 28px;
   color: #2d3e2d;
   margin-bottom: 8px;
   font-family: 'Manrope', sans-serif;
@@ -2641,7 +2652,7 @@
 }
 
 .leaderboard-subtitle {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(45, 62, 45, 0.7);
   font-family: 'Manrope', sans-serif;
 }
@@ -2660,7 +2671,7 @@
   border: none;
   border-bottom: 3px solid transparent;
   color: rgba(45, 62, 45, 0.7);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
   cursor: pointer;
@@ -2732,7 +2743,7 @@
 }
 
 .leaderboard-name {
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 600;
   color: #2d3e2d;
   font-family: 'Manrope', sans-serif;
@@ -2742,7 +2753,7 @@
 }
 
 .current-badge {
-  font-size: 11px;
+  font-size: 13px;
   padding: 2px 8px;
   background: #87AE73;
   color: #FFFFE3;
@@ -2753,7 +2764,7 @@
 .leaderboard-stats {
   display: flex;
   gap: 15px;
-  font-size: 13px;
+  font-size: 15px;
   color: rgba(45, 62, 45, 0.7);
   font-family: 'Manrope', sans-serif;
 }
@@ -2782,7 +2793,7 @@
   position: fixed;
   top: 10px;
   left: 15px;
-  z-index: 10000;
+  z-index: 99998 !important;
   background: rgba(207, 197, 176, 0.95);
   backdrop-filter: blur(10px);
   padding: 10px 15px;
@@ -2796,10 +2807,10 @@
 }
 
 .spectating-back-btn {
-  padding: 8px 16px;
-  background: #4CAF50;
+  padding: 10px 20px;
+  background-color: #4CAF50;
   color: #FFFFE3;
-  border: none;
+  border: 2px solid transparent;
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
@@ -2809,16 +2820,31 @@
   white-space: nowrap;
   pointer-events: auto !important;
   position: relative;
-  z-index: 10001;
+  z-index: 99999 !important;
   display: flex;
+  visibility: visible;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .spectating-back-btn:hover {
-  background: #45a049;
+  background-color: #45a049;
+  border-color: #388e3c;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.spectating-back-btn:active {
+  background-color: #3d8b40;
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2);
 }
 
 
@@ -2855,6 +2881,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  pointer-events: none;
+  position: relative;
+  z-index: 10001;
 }
 
 .spectating-avatar {
@@ -2874,6 +2903,296 @@
   font-weight: 600;
   color: #2d3e2d;
   font-family: 'Manrope', sans-serif;
+}
+
+/* Session Summary */
+.session-summary-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.session-summary {
+  background: linear-gradient(135deg, #cfc5b0 0%, #e8ddd0 100%);
+  border-radius: 25px;
+  padding: 40px 30px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.session-summary-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 35px;
+  height: 35px;
+  border: none;
+  background: rgba(135, 174, 115, 0.2);
+  border-radius: 50%;
+  font-size: 20px;
+  color: #2d3e2d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-family: 'Manrope', sans-serif;
+}
+
+.session-summary-close:hover {
+  background: #87AE73;
+  color: #FFFFE3;
+  transform: rotate(90deg) scale(1.1);
+}
+
+.session-summary-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 25px;
+  border-bottom: 3px solid rgba(135, 174, 115, 0.3);
+}
+
+.session-summary-icon {
+  font-size: 64px;
+  margin-bottom: 15px;
+  animation: bounce 0.6s ease;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.session-summary-header h2 {
+  font-size: 28px;
+  color: #2d3e2d;
+  margin: 0 0 8px 0;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+}
+
+.session-summary-subtitle {
+  font-size: 16px;
+  color: rgba(45, 62, 45, 0.7);
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+}
+
+.session-summary-stats {
+  margin-bottom: 30px;
+}
+
+.session-summary-stat-card.main {
+  background: linear-gradient(135deg, #87AE73 0%, #9CAF88 100%);
+  color: #FFFFE3;
+  padding: 30px;
+  border-radius: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(135, 174, 115, 0.3);
+  border: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.session-summary-stat-card.coins-earned {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #2d3e2d;
+  padding: 25px;
+  border-radius: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  animation: coinsPulse 2s ease-in-out infinite;
+}
+
+@keyframes coinsPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 12px 32px rgba(255, 215, 0, 0.6);
+  }
+}
+
+.session-summary-stat-card.coins-earned .session-summary-stat-value {
+  color: #2d3e2d;
+  font-size: 32px;
+}
+
+.session-summary-stat-card.coins-earned .session-summary-stat-label {
+  color: #2d3e2d;
+  opacity: 0.9;
+}
+
+.session-summary-stat-card {
+  background: rgba(207, 197, 176, 0.4);
+  padding: 20px;
+  border-radius: 15px;
+  text-align: center;
+  border: 2px solid rgba(135, 174, 115, 0.2);
+  transition: all 0.3s ease;
+}
+
+.session-summary-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(135, 174, 115, 0.2);
+}
+
+.session-summary-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.session-summary-section-divider {
+  margin: 25px 0 15px 0;
+  padding-top: 20px;
+  border-top: 2px solid rgba(135, 174, 115, 0.3);
+}
+
+.session-summary-section-title {
+  font-size: 18px;
+  color: #87AE73;
+  margin: 0 0 15px 0;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  text-align: center;
+}
+
+.session-summary-stat-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.session-summary-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  font-family: 'Manrope', sans-serif;
+}
+
+.session-summary-stat-card.main .session-summary-stat-value {
+  font-size: 36px;
+  color: #FFFFE3;
+}
+
+.session-summary-stat-label {
+  font-size: 12px;
+  opacity: 0.8;
+  font-family: 'Manrope', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.session-summary-stat-card.main .session-summary-stat-label {
+  color: #FFFFE3;
+  opacity: 0.9;
+}
+
+.session-summary-footer {
+  text-align: center;
+}
+
+.session-summary-btn {
+  padding: 14px 40px;
+  background: #87AE73;
+  color: #FFFFE3;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(135, 174, 115, 0.3);
+}
+
+.session-summary-btn:hover {
+  background: #7a9d66;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(135, 174, 115, 0.4);
+}
+
+.session-summary-btn:active {
+  transform: translateY(0);
+}
+
+/* Scrollbar dla session-summary */
+.session-summary::-webkit-scrollbar {
+  width: 8px;
+}
+
+.session-summary::-webkit-scrollbar-track {
+  background: rgba(207, 197, 176, 0.2);
+  border-radius: 10px;
+}
+
+.session-summary::-webkit-scrollbar-thumb {
+  background: rgba(135, 174, 115, 0.5);
+  border-radius: 10px;
+}
+
+.session-summary::-webkit-scrollbar-thumb:hover {
+  background: rgba(135, 174, 115, 0.7);
+}
+
+@media (max-width: 768px) {
+  .session-summary {
+    padding: 30px 20px;
+    max-width: 100%;
+    max-height: 85vh;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .session-summary-header h2 {
+    font-size: 24px;
+  }
+
+  .session-summary-stat-card.main {
+    padding: 25px;
+  }
+
+  .session-summary-stat-value {
+    font-size: 20px;
+  }
+
+  .session-summary-stat-card.main .session-summary-stat-value {
+    font-size: 28px;
+  }
 }
 
 

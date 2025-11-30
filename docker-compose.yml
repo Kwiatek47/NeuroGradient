@@ -12,9 +12,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=http://backend:3001
+      - REACT_APP_API_URL=http://localhost:3001
       - HOST=0.0.0.0
     depends_on:
       - backend
     restart: unless-stopped
+
+  # eeg-service - uruchamiany na hoście (poza Dockerem) dla dostępu do Bluetooth/USB
+  # Uruchom: python eeg-service/main.py
 
