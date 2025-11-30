@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDuration = 0 }) {
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const [treeMaturityDisplay, setTreeMaturityDisplay] = useState(0);
   const stateRef = useRef({
     inputP: 0,
     treeMaturity: 0,
@@ -157,22 +158,19 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
       stateRef.current.inputP = inputP;
 
       // --- GŁÓWNA LOGIKA WZROSTU OPARTA NA INPUT P ---
-      // Wartości dodatnie (0; 1] - wzrost proporcjonalny do wartości (im wyższa, tym szybszy wzrost)
-      // Wartości ujemne [-1; 0) - spadek proporcjonalny do wartości bezwzględnej (im bardziej ujemna, tym szybszy spadek)
-      if (stateRef.current.inputP > 0) {
-        // Wzrost: im wyższa wartość (bliżej 1), tym szybszy wzrost
-        // Kwadrat wartości dla bardziej dynamicznego wzrostu przy wyższych wartościach
-        stateRef.current.treeMaturity += stateRef.current.inputP * GROWTH_SPEED * stateRef.current.inputP;
-      } else if (stateRef.current.inputP < 0) {
-        // Spadek: im bardziej ujemna wartość (bliżej -1), tym szybszy spadek
-        // Kwadrat wartości bezwzględnej dla bardziej dynamicznego spadku przy bardziej ujemnych wartościach
-        const absValue = Math.abs(stateRef.current.inputP);
-        stateRef.current.treeMaturity -= absValue * GROWTH_SPEED * absValue;
-      }
-      // Jeśli inputP === 0, nie zmieniaj treeMaturity
+      // Prosta logika: inputP * GROWTH_SPEED
+      // Wartości dodatnie (0; 1] - wzrost proporcjonalny do wartości
+      // Wartości ujemne [-1; 0) - spadek proporcjonalny do wartości bezwzględnej
+      // Input 0.5 = 5 minut do pełnego wzrostu (300s * 60fps = 18000 klatek, 1.0 / (18000 * 0.5) = ~0.000111)
+      stateRef.current.treeMaturity += stateRef.current.inputP * GROWTH_SPEED;
       
       if (stateRef.current.treeMaturity > 1.0) stateRef.current.treeMaturity = 1.0;
       if (stateRef.current.treeMaturity < 0.0) stateRef.current.treeMaturity = 0.0;
+
+      // Aktualizuj wyświetlaną wartość dojrzałości (co kilka klatek dla wydajności)
+      if (Math.floor(stateRef.current.time * 10) % 5 === 0) {
+        setTreeMaturityDisplay(stateRef.current.treeMaturity);
+      }
 
       // Mapowanie na wizualia
       stateRef.current.focusLevel = stateRef.current.treeMaturity;
@@ -309,11 +307,11 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
         zIndex: 1002,
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
         border: '2px solid rgba(255, 255, 255, 0.2)',
-        minWidth: '150px'
+        minWidth: '200px'
       }}>
         <div style={{
           fontSize: '14px',
-          marginBottom: '8px',
+          marginBottom: '12px',
           opacity: 0.8,
           textTransform: 'uppercase',
           letterSpacing: '1px'
@@ -324,16 +322,34 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
           color: inputP > 0 ? '#4CAF50' : inputP < 0 ? '#F44336' : '#9E9E9E',
           fontSize: '48px',
           fontWeight: 700,
-          textShadow: '0 2px 10px rgba(0, 0, 0, 0.5)'
+          textShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
+          marginBottom: '12px'
         }}>
           {inputP.toFixed(3)}
         </div>
         <div style={{
           fontSize: '12px',
-          marginTop: '8px',
+          marginBottom: '12px',
           opacity: 0.6
         }}>
           {inputP > 0 ? '↑ Wzrost' : inputP < 0 ? '↓ Spadek' : '— Neutralne'}
+        </div>
+        <div style={{
+          fontSize: '14px',
+          marginTop: '12px',
+          paddingTop: '12px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+          opacity: 0.8
+        }}>
+          Stan Drzewa
+        </div>
+        <div style={{
+          fontSize: '24px',
+          fontWeight: 600,
+          color: '#87CEEB',
+          marginTop: '4px'
+        }}>
+          {(treeMaturityDisplay * 100).toFixed(1)}%
         </div>
       </div>
     </div>
