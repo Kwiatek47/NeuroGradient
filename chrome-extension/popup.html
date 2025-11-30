@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroGradient - Blokada</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      width: 320px;
+      padding: 20px;
+      background: #FFFFE3;
+      color: #2d3e2d;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 20px;
+      margin-bottom: 5px;
+      color: #2d3e2d;
+    }
+    
+    .status {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    
+    .status.active {
+      background: #87AE73;
+      color: #FFFFE3;
+    }
+    
+    .status.inactive {
+      background: rgba(45, 62, 45, 0.2);
+      color: #2d3e2d;
+    }
+    
+    .blocked-list {
+      margin-top: 15px;
+    }
+    
+    .blocked-item {
+      background: rgba(135, 174, 115, 0.1);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      word-break: break-all;
+    }
+    
+    .empty {
+      text-align: center;
+      padding: 20px;
+      color: rgba(45, 62, 45, 0.5);
+      font-size: 13px;
+    }
+    
+    .info {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(135, 174, 115, 0.2);
+      font-size: 11px;
+      color: rgba(45, 62, 45, 0.6);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🌳 NeuroGradient</h1>
+    <div class="status" id="status">Sprawdzanie...</div>
+  </div>
+  
+  <div class="blocked-list" id="blockedList">
+    <div class="empty">Ładowanie...</div>
+  </div>
+  
+  <div class="info">
+    Zarządzaj zablokowanymi stronami w aplikacji NeuroGradient
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
+

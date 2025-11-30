@@ -1590,6 +1590,8 @@
 /* Calendar Styles - moved to panel */
 .calendar-panel .panel-content {
   padding: 40px 20px 25px;
+  overflow-y: auto;
+  max-height: calc(85vh - 80px);
 }
 
 .calendar-year {
@@ -1653,7 +1655,7 @@
   justify-content: center;
   font-size: 11px;
   color: #2d3e2d;
-  background: rgba(255, 255, 240, 0.3);
+  background: #ebedf0; /* Kolor jak na GitHubie - bardzo jasny szary dla dni bez aktywności */
   border-radius: 6px;
   transition: all 0.2s ease;
   font-family: 'Manrope', sans-serif;
@@ -1670,9 +1672,77 @@
   box-shadow: 0 2px 8px rgba(135, 174, 115, 0.4);
 }
 
-.calendar-day:not(.empty):not(.today):hover {
-  background: rgba(255, 255, 240, 0.6);
+/* Dziś bez aktywności - pozostaw zielony kolor */
+.calendar-day.today:not(.activity-low):not(.activity-medium):not(.activity-high):not(.activity-very-high) {
+  background: #87AE73 !important;
+  color: #FFFFE3 !important;
+}
+
+/* Kolory aktywności jak na GitHubie - od jasno zielonego do ciemno zielonego */
+.calendar-day.activity-low {
+  background: #9be9a8 !important; /* Jasny zielony - niska aktywność < 15 min (GitHub) */
+  color: #2d3e2d !important;
+}
+
+.calendar-day.activity-medium {
+  background: #40c463 !important; /* Zielony - średnia aktywność 15-30 min (GitHub) */
+  color: #2d3e2d !important;
+}
+
+.calendar-day.activity-high {
+  background: #30a14e !important; /* Ciemny zielony - wysoka aktywność 30-60 min (GitHub) */
+  color: #FFFFE3 !important;
+}
+
+.calendar-day.activity-very-high {
+  background: #216e39 !important; /* Najciemniejszy zielony - bardzo wysoka aktywność 60+ min (GitHub) */
+  color: #FFFFE3 !important;
+}
+
+/* Dni bez aktywności - bardzo jasny szary (jak GitHub) */
+.calendar-day:not(.empty):not(.today):not(.activity-low):not(.activity-medium):not(.activity-high):not(.activity-very-high) {
+  background: #ebedf0 !important;
+}
+
+/* Dziś z aktywnością - użyj pełnych kolorów GitHub (bardziej widoczne) */
+.calendar-day.today.activity-low {
+  background: #9be9a8 !important; /* Jasny zielony */
+  color: #2d3e2d !important;
+  border: 2px solid #87AE73 !important;
+}
+
+.calendar-day.today.activity-medium {
+  background: #40c463 !important; /* Zielony */
+  color: #2d3e2d !important;
+  border: 2px solid #87AE73 !important;
+}
+
+.calendar-day.today.activity-high {
+  background: #30a14e !important; /* Ciemny zielony */
+  color: #FFFFE3 !important;
+  border: 2px solid #87AE73 !important;
+}
+
+.calendar-day.today.activity-very-high {
+  background: #216e39 !important; /* Najciemniejszy zielony */
+  color: #FFFFE3 !important;
+  border: 2px solid #87AE73 !important;
+}
+
+/* Hover dla dni bez aktywności */
+.calendar-day:not(.empty):not(.today):not(.activity-low):not(.activity-medium):not(.activity-high):not(.activity-very-high):hover {
+  background: rgba(235, 237, 240, 0.8) !important;
   transform: scale(1.05);
+  cursor: pointer;
+}
+
+/* Hover dla dni z aktywnością - tylko zwiększ skalę, nie zmieniaj koloru */
+.calendar-day.activity-low:hover,
+.calendar-day.activity-medium:hover,
+.calendar-day.activity-high:hover,
+.calendar-day.activity-very-high:hover {
+  transform: scale(1.1);
+  opacity: 0.85;
   cursor: pointer;
 }
 

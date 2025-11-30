@@ -4,6 +4,180 @@ import Board3D from './Board3D';
 import GrowingTree from './GrowingTree';
 import IntroScreen from './IntroScreen';
 
+// Komponent wykresu focus score
+function FocusChart({ history }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !history || history.length < 2) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = 500;
+    const height = 180;
+    canvas.width = width;
+    canvas.height = height;
+
+    // Wyczyść canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Tło wykresu
+    ctx.fillStyle = 'rgba(207, 197, 176, 0.2)';
+    ctx.fillRect(0, 0, width, height);
+
+    // Linia środkowa (zero)
+    ctx.strokeStyle = 'rgba(45, 62, 45, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, height / 2);
+    ctx.lineTo(width, height / 2);
+    ctx.stroke();
+
+    // Rysuj linię wykresu z gradientem kolorów
+    const padding = 20;
+    const graphWidth = width - padding * 2;
+    const graphHeight = height - padding * 2;
+    const centerY = height / 2;
+
+    // Rysuj segmenty z różnymi kolorami
+    let lastX = padding;
+    let lastY = centerY;
+
+    history.forEach((point, index) => {
+      const x = padding + (index / (history.length - 1)) * graphWidth;
+      const y = centerY - (point.score * (graphHeight / 2));
+
+      // Określ kolor na podstawie wartości
+      let lineColor;
+      if (point.score > 0.3) {
+        lineColor = '#4CAF50'; // Zielony - wysokie skupienie
+      } else if (point.score > -0.3) {
+        lineColor = '#FFC107'; // Żółty - średnie skupienie
+      } else {
+        lineColor = '#F44336'; // Czerwony - niskie skupienie
+      }
+
+      if (index === 0) {
+        // Pierwszy punkt
+        lastX = x;
+        lastY = y;
+      } else {
+        // Rysuj linię z odpowiednim kolorem
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        
+        lastX = x;
+        lastY = y;
+      }
+    });
+
+    // Rysuj wypełnienie pod wykresem z gradientem
+    const gradient = ctx.createLinearGradient(0, padding, 0, height - padding);
+    gradient.addColorStop(0, 'rgba(76, 175, 80, 0.15)');
+    gradient.addColorStop(0.5, 'rgba(255, 193, 7, 0.15)');
+    gradient.addColorStop(1, 'rgba(244, 67, 54, 0.15)');
+
+    ctx.beginPath();
+    ctx.moveTo(padding, centerY);
+    history.forEach((point, index) => {
+      const x = padding + (index / (history.length - 1)) * graphWidth;
+      const y = centerY - (point.score * (graphHeight / 2));
+      ctx.lineTo(x, y);
+    });
+    ctx.lineTo(padding + graphWidth, centerY);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // Rysuj punkty na wykresie (co kilka punktów)
+    history.forEach((point, index) => {
+      if (index % Math.max(1, Math.floor(history.length / 30)) === 0) {
+        const x = padding + (index / (history.length - 1)) * graphWidth;
+        const y = centerY - (point.score * (graphHeight / 2));
+        
+        let pointColor;
+        if (point.score > 0.3) {
+          pointColor = '#4CAF50';
+        } else if (point.score > -0.3) {
+          pointColor = '#FFC107';
+        } else {
+          pointColor = '#F44336';
+        }
+
+        ctx.fillStyle = pointColor;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+
+    // Etykiety osi
+    ctx.fillStyle = '#2d3e2d';
+    ctx.font = '11px Manrope, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Czas sesji', width / 2, height - 5);
+    
+    ctx.save();
+    ctx.translate(10, height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Focus Score', 0, 0);
+    ctx.restore();
+
+  }, [history]);
+
+  if (!history || history.length < 2) return null;
+
+  return (
+    <div style={{
+      marginTop: '20px',
+      marginBottom: '20px',
+      padding: '15px',
+      background: 'rgba(207, 197, 176, 0.3)',
+      borderRadius: '15px',
+      border: '2px solid rgba(135, 174, 115, 0.2)'
+    }}>
+      <div style={{
+        fontSize: '14px',
+        fontWeight: 600,
+        color: '#2d3e2d',
+        marginBottom: '12px',
+        textAlign: 'center',
+        fontFamily: "'Manrope', sans-serif"
+      }}>
+        Wykres focus score w czasie
+      </div>
+      <canvas 
+        ref={canvasRef}
+        style={{ 
+          display: 'block', 
+          width: '100%',
+          maxWidth: '500px',
+          margin: '0 auto',
+          borderRadius: '8px'
+        }}
+      />
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '20px',
+        marginTop: '10px',
+        fontSize: '11px',
+        fontFamily: "'Manrope', sans-serif",
+        color: '#2d3e2d',
+        opacity: 0.7
+      }}>
+        <span style={{ color: '#F44336' }}>● Niski</span>
+        <span style={{ color: '#FFC107' }}>● Średni</span>
+        <span style={{ color: '#4CAF50' }}>● Wysoki</span>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -36,6 +210,7 @@ function App() {
   const [activeShopTab, setActiveShopTab] = useState('music'); // aktywna zakładka w sklepie
   const audioRef = useRef(null); // referencja do elementu audio (muzyka)
   const atmosphereAudioRef = useRef(null); // referencja do elementu audio (atmosfera)
+  const calendarPanelRef = useRef(null); // referencja do panelu kalendarza
   const [sessionStartTime, setSessionStartTime] = useState(null); // czas rozpoczęcia sesji
   const [sessionDuration, setSessionDuration] = useState(0); // czas trwania sesji w sekundach
   const [eegConnected, setEegConnected] = useState(false); // Status połączenia z EEG
@@ -48,6 +223,11 @@ function App() {
     // Ładowanie osiągnięć z localStorage
     const saved = localStorage.getItem('achievements');
     return saved ? JSON.parse(saved) : {};
+  });
+  const [claimedRewards, setClaimedRewards] = useState(() => {
+    // Ładowanie odebranych nagród z localStorage
+    const saved = localStorage.getItem('claimedRewards');
+    return saved ? JSON.parse(saved) : [];
   });
   const [purchasingItem, setPurchasingItem] = useState(null); // ID przedmiotu w trakcie animacji zakupu
   const [plantedTrees, setPlantedTrees] = useState(() => {
@@ -250,22 +430,100 @@ function App() {
 
   // Odtwarzanie muzyki gdy activeMusic się zmienia
   useEffect(() => {
-    if (audioRef.current) {
-      if (activeMusic) {
-        const musicItem = shopItems.find(item => item.id === activeMusic);
-        if (musicItem && musicItem.audioPath) {
-          audioRef.current.src = musicItem.audioPath;
-          audioRef.current.loop = true;
-          audioRef.current.volume = 0.5; // 50% głośności
-          audioRef.current.play().catch(error => {
-            console.log('Błąd odtwarzania muzyki:', error);
+    if (!audioRef.current) return;
+    
+    const audio = audioRef.current;
+    
+    if (activeMusic) {
+      const musicItem = shopItems.find(item => item.id === activeMusic);
+      if (musicItem && musicItem.audioPath) {
+        console.log('Odtwarzanie muzyki:', musicItem.name, musicItem.audioPath);
+        
+        // Użyj process.env.PUBLIC_URL jeśli jest dostępny
+        const audioPath = musicItem.audioPath.startsWith('/') 
+          ? musicItem.audioPath 
+          : `${process.env.PUBLIC_URL || ''}${musicItem.audioPath}`;
+        
+        // Funkcje obsługi eventów
+        const handleMusicLoaded = () => {
+          console.log('Plik muzyki załadowany:', audioPath);
+        };
+        
+        const handleMusicError = (e) => {
+          console.error('Błąd ładowania pliku muzyki:', e);
+          console.error('Ścieżka:', audioPath);
+          console.error('Element audio:', audio);
+          console.error('Błąd:', audio.error);
+          if (audio.error) {
+            console.error('Kod błędu:', audio.error.code);
+            console.error('Wiadomość:', audio.error.message);
+          }
+        };
+        
+        const handleMusicCanPlay = () => {
+          console.log('Muzyka gotowa do odtworzenia:', audioPath);
+          // Spróbuj odtworzyć gdy plik jest gotowy
+          audio.play().catch(error => {
+            console.error('Błąd odtwarzania muzyki (canplaythrough):', error);
+            if (error.name === 'NotAllowedError') {
+              console.warn('Autoplay zablokowany - wymagana interakcja użytkownika');
+              const playOnInteraction = () => {
+                audio.play().catch(console.error);
+                document.removeEventListener('click', playOnInteraction);
+                document.removeEventListener('touchstart', playOnInteraction);
+              };
+              document.addEventListener('click', playOnInteraction, { once: true });
+              document.addEventListener('touchstart', playOnInteraction, { once: true });
+            }
           });
-        }
+        };
+        
+        const playOnUserInteraction = () => {
+          audio.play().catch(console.error);
+          document.removeEventListener('click', playOnUserInteraction);
+          document.removeEventListener('touchstart', playOnUserInteraction);
+        };
+        
+        // Usuń poprzednie event listenery (jeśli istnieją)
+        audio.removeEventListener('loadeddata', handleMusicLoaded);
+        audio.removeEventListener('error', handleMusicError);
+        audio.removeEventListener('canplaythrough', handleMusicCanPlay);
+        
+        // Dodaj nowe event listenery
+        audio.addEventListener('loadeddata', handleMusicLoaded);
+        audio.addEventListener('error', handleMusicError);
+        audio.addEventListener('canplaythrough', handleMusicCanPlay);
+        
+        audio.src = audioPath;
+        audio.loop = true;
+        audio.volume = 0.5; // 50% głośności
+        
+        // Spróbuj odtworzyć od razu
+        audio.play().then(() => {
+          console.log('Odtwarzanie muzyki rozpoczęte:', audioPath);
+        }).catch(error => {
+          console.error('Błąd odtwarzania muzyki:', error);
+          if (error.name === 'NotAllowedError') {
+            console.warn('Autoplay zablokowany - wymagana interakcja użytkownika');
+            document.addEventListener('click', playOnUserInteraction, { once: true });
+            document.addEventListener('touchstart', playOnUserInteraction, { once: true });
+          }
+        });
       } else {
-        audioRef.current.pause();
-        audioRef.current.src = '';
+        console.warn('Nie znaleziono muzyki lub brak ścieżki:', activeMusic, musicItem);
       }
+    } else {
+      if (audio.src) {
+        console.log('Zatrzymywanie muzyki');
+      }
+      audio.pause();
+      audio.src = '';
     }
+    
+    // Cleanup
+    return () => {
+      // Event listenery zostaną automatycznie usunięte gdy element audio zostanie zastąpiony
+    };
   }, [activeMusic, shopItems]);
 
   // Odtwarzanie dźwięków atmosfery gdy activeAtmosphere się zmienia
@@ -315,6 +573,36 @@ function App() {
       }
     }
   }, [activeAtmosphere, shopItems]);
+
+  // Auto-scroll do bieżącego miesiąca gdy kalendarz się otwiera
+  useEffect(() => {
+    if (calendarOpen && calendarPanelRef.current) {
+      // Poczekaj chwilę na renderowanie
+      setTimeout(() => {
+        const currentMonthElement = calendarPanelRef.current?.querySelector('.calendar-month.current-month');
+        if (currentMonthElement) {
+          // Przewiń do bieżącego miesiąca
+          currentMonthElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+          
+          // Dodatkowo przewiń do dzisiejszego dnia w miesiącu
+          setTimeout(() => {
+            const todayElement = currentMonthElement.querySelector('.calendar-day.today');
+            if (todayElement) {
+              todayElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'center'
+              });
+            }
+          }, 300);
+        }
+      }, 150);
+    }
+  }, [calendarOpen]);
 
   // Sprawdzanie osiągnięć przy zmianie historii sesji
   useEffect(() => {
@@ -401,6 +689,15 @@ function App() {
       if (interval) clearInterval(interval);
     };
   }, [isActive, isPaused, sessionStartTime]);
+
+  // Synchronizuj status sesji z localStorage dla rozszerzenia Chrome
+  useEffect(() => {
+    localStorage.setItem('isActive', isActive.toString());
+    // Wyślij event do rozszerzenia (jeśli dostępne)
+    window.dispatchEvent(new CustomEvent('neurogradient-session-change', { 
+      detail: { isActive, blockedUrls } 
+    }));
+  }, [isActive, blockedUrls]);
 
   const startActivity = () => {
     // Najpierw pokaż intro
@@ -530,10 +827,11 @@ function App() {
         // Oblicz ocenę stanu skupienia na podstawie statystyk
         const focusAssessment = calculateFocusAssessment(data.focusStats || {});
         
-        // Dodaj ocenę do sessionSummaryData
+        // Dodaj ocenę i historię focus score do sessionSummaryData
         setSessionSummaryData(prev => ({
           ...prev,
-          focusAssessment: focusAssessment
+          focusAssessment: focusAssessment,
+          focusHistory: data.focusHistory || [] // Historia focus score z backendu
         }));
       })
       .catch(error => {
@@ -661,6 +959,33 @@ function App() {
       longestFormatted: formatTime(longestSession),
       averageFormatted: formatTime(averageDuration)
     };
+  };
+
+  // Funkcja do określenia poziomu aktywności dnia (0 = brak, 1 = niska, 2 = wysoka)
+  // Funkcja do określenia poziomu aktywności dnia (0 = brak, 1 = niska, 2 = średnia, 3 = wysoka, 4 = bardzo wysoka)
+  // Kolory jak na GitHubie
+  const getDayActivityLevel = (year, month, day) => {
+    const stats = getDayStats(year, month, day);
+    if (stats.totalDuration === 0) return 0;
+    
+    // Poziomy aktywności (jak na GitHubie):
+    // 0 = brak aktywności
+    // 1 = niska (mniej niż 15 minut)
+    // 2 = średnia (15-30 minut)
+    // 3 = wysoka (30-60 minut)
+    // 4 = bardzo wysoka (60+ minut)
+    
+    const minutes = stats.totalDuration / 60;
+    
+    if (minutes < 15) {
+      return 1; // niska aktywność
+    } else if (minutes < 30) {
+      return 2; // średnia aktywność
+    } else if (minutes < 60) {
+      return 3; // wysoka aktywność
+    } else {
+      return 4; // bardzo wysoka aktywność
+    }
   };
 
   const getMonthDays = (year, month) => {
@@ -1264,7 +1589,7 @@ function App() {
 
       {/* Panel Kalendarza */}
       <div className={`side-panel calendar-panel ${calendarOpen ? 'open' : ''}`}>
-        <div className="panel-content">
+        <div className="panel-content" ref={calendarPanelRef}>
           <button className="panel-close" onClick={() => setCalendarOpen(false)}>×</button>
           <div className="calendar-year">{currentYear}</div>
           <div className="calendar-grid">
@@ -1273,7 +1598,11 @@ function App() {
               const isCurrentMonth = today.getMonth() === monthIndex && today.getFullYear() === currentYear;
               
               return (
-                <div key={monthIndex} className="calendar-month">
+                <div 
+                  key={monthIndex} 
+                  className={`calendar-month ${isCurrentMonth ? 'current-month' : ''}`}
+                  data-month-index={monthIndex}
+                >
                   <div className="calendar-month-header">{monthName}</div>
                   <div className="calendar-weekdays">
                     {dayNames.map((day, idx) => (
@@ -1283,10 +1612,50 @@ function App() {
                   <div className="calendar-days">
                     {days.map((day, dayIndex) => {
                       const isToday = isCurrentMonth && day === today.getDate();
+                      const activityLevel = day ? getDayActivityLevel(currentYear, monthIndex, day) : 0;
+                      // Klasy aktywności: activity-none (0), activity-low (1), activity-medium (2), activity-high (3), activity-very-high (4)
+                      const activityClass = activityLevel === 0 ? '' : 
+                                           activityLevel === 1 ? 'activity-low' : 
+                                           activityLevel === 2 ? 'activity-medium' : 
+                                           activityLevel === 3 ? 'activity-high' : 
+                                           'activity-very-high';
+                      
+                      // Kolory inline jako fallback (jak na GitHubie)
+                      let backgroundColor = '#ebedf0'; // domyślny - brak aktywności
+                      let textColor = '#2d3e2d';
+                      
+                      if (activityLevel === 1) {
+                        backgroundColor = '#9be9a8'; // jasny zielony
+                        textColor = '#2d3e2d';
+                      } else if (activityLevel === 2) {
+                        backgroundColor = '#40c463'; // zielony
+                        textColor = '#2d3e2d';
+                      } else if (activityLevel === 3) {
+                        backgroundColor = '#30a14e'; // ciemny zielony
+                        textColor = '#FFFFE3';
+                      } else if (activityLevel === 4) {
+                        backgroundColor = '#216e39'; // najciemniejszy zielony
+                        textColor = '#FFFFE3';
+                      }
+                      
+                      // Jeśli to dzisiaj, użyj specjalnego koloru jeśli nie ma aktywności
+                      if (isToday && activityLevel === 0) {
+                        backgroundColor = '#87AE73';
+                        textColor = '#FFFFE3';
+                      } else if (isToday && activityLevel > 0) {
+                        // Dziś z aktywnością - użyj koloru aktywności z ramką
+                        textColor = activityLevel >= 3 ? '#FFFFE3' : '#2d3e2d';
+                      }
+                      
                       return (
                         <div 
                           key={dayIndex} 
-                          className={`calendar-day ${day ? '' : 'empty'} ${isToday ? 'today' : ''}`}
+                          className={`calendar-day ${day ? '' : 'empty'} ${isToday ? 'today' : ''} ${activityClass}`}
+                          style={{
+                            background: day ? backgroundColor : undefined,
+                            color: day ? textColor : undefined,
+                            border: isToday && activityLevel > 0 ? '2px solid #87AE73' : undefined
+                          }}
                           onClick={() => {
                             if (day) {
                               setSelectedDate({ year: currentYear, month: monthIndex, day });
@@ -1572,7 +1941,40 @@ function App() {
                         </div>
                       </div>
                       {challenge.completed && (
-                        <div className="challenge-badge">✓ Ukończone</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                          {!claimedRewards.includes(challenge.id) ? (
+                            <button
+                              className="settings-action-btn"
+                              onClick={() => {
+                                // Dodaj nagrodę do odebranych
+                                const newClaimed = [...claimedRewards, challenge.id];
+                                setClaimedRewards(newClaimed);
+                                localStorage.setItem('claimedRewards', JSON.stringify(newClaimed));
+                                
+                                // Przyznaj nagrodę (nasiona)
+                                if (typeof challenge.reward === 'number') {
+                                  setCoins(prev => {
+                                    const newCoins = prev + challenge.reward;
+                                    localStorage.setItem('coins', newCoins.toString());
+                                    return newCoins;
+                                  });
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '10px',
+                                fontSize: '13px',
+                                fontWeight: 600
+                              }}
+                            >
+                              🎁 Odbierz nagrodę
+                            </button>
+                          ) : (
+                            <div className="challenge-badge" style={{ background: '#4CAF50' }}>
+                              ✓ Nagroda odebrana
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
@@ -1687,7 +2089,7 @@ function App() {
                 <div className="settings-item">
                   <div className="settings-item-info">
                     <span className="settings-item-label">Muzyka do intro</span>
-                    <span className="settings-item-description">Wybierz muzykę odtwarzaną przed rozpoczęciem sesji</span>
+                    <span className="settings-item-description">Wybierz muzykę odtwarzaną przed rozpoczęciem sesji (tylko kupione)</span>
                   </div>
                   <select 
                     value={introMusic} 
@@ -1703,13 +2105,21 @@ function App() {
                       color: '#2d3e2d',
                       fontSize: '12px',
                       fontFamily: 'Manrope, sans-serif',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      minWidth: '150px'
                     }}
                   >
                     <option value="">Brak muzyki</option>
-                    {getItemsByCategory('music').map(item => (
-                      <option key={item.id} value={item.id}>{item.name}</option>
-                    ))}
+                    {getItemsByCategory('music')
+                      .filter(item => ownedItems.includes(item.id))
+                      .map(item => (
+                        <option key={item.id} value={item.id}>
+                          {item.icon} {item.name}
+                        </option>
+                      ))}
+                    {getItemsByCategory('music').filter(item => ownedItems.includes(item.id)).length === 0 && (
+                      <option disabled>Brak kupionych muzyk - kup w sklepie</option>
+                    )}
                   </select>
                 </div>
 
@@ -1833,6 +2243,165 @@ function App() {
                     />
                     <span className="toggle-slider"></span>
                   </label>
+                </div>
+
+                {/* Muzyka podczas sesji - tylko kupione */}
+                <div className="settings-item">
+                  <div className="settings-item-info">
+                    <span className="settings-item-label">Muzyka podczas sesji</span>
+                    <span className="settings-item-description">Wybierz muzykę odtwarzaną podczas sesji (tylko kupione)</span>
+                  </div>
+                  <select 
+                    value={activeMusic || ''} 
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        activateItem(shopItems.find(item => item.id === e.target.value));
+                      } else {
+                        deactivateItem(activeMusic, 'music');
+                      }
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '2px solid #87AE73',
+                      background: '#FFFFE3',
+                      color: '#2d3e2d',
+                      fontSize: '12px',
+                      fontFamily: 'Manrope, sans-serif',
+                      cursor: 'pointer',
+                      minWidth: '150px'
+                    }}
+                  >
+                    <option value="">Brak muzyki</option>
+                    {getItemsByCategory('music')
+                      .filter(item => ownedItems.includes(item.id))
+                      .map(item => (
+                        <option key={item.id} value={item.id}>
+                          {item.icon} {item.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Atmosfera podczas sesji - tylko kupione */}
+                <div className="settings-item">
+                  <div className="settings-item-info">
+                    <span className="settings-item-label">Atmosfera podczas sesji</span>
+                    <span className="settings-item-description">Wybierz atmosferę odtwarzaną podczas sesji (tylko kupione)</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                    {getItemsByCategory('atmosphere')
+                      .filter(item => ownedItems.includes(item.id))
+                      .map(item => {
+                        const isActive = activeAtmosphere.includes(item.id);
+                        return (
+                          <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', background: isActive ? 'rgba(135, 174, 115, 0.2)' : 'transparent', borderRadius: '8px' }}>
+                            <span style={{ fontSize: '12px', color: '#2d3e2d' }}>
+                              {item.icon} {item.name}
+                            </span>
+                            <label className="toggle-switch" style={{ margin: 0 }}>
+                              <input 
+                                type="checkbox" 
+                                checked={isActive}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    activateItem(item);
+                                  } else {
+                                    deactivateItem(item.id, 'atmosphere');
+                                  }
+                                }}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                          </div>
+                        );
+                      })}
+                    {getItemsByCategory('atmosphere').filter(item => ownedItems.includes(item.id)).length === 0 && (
+                      <span style={{ fontSize: '11px', color: 'rgba(45, 62, 45, 0.6)', fontStyle: 'italic' }}>
+                        Brak kupionych atmosfer - kup w sklepie
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Boostery - tylko kupione */}
+                <div className="settings-item">
+                  <div className="settings-item-info">
+                    <span className="settings-item-label">Aktywne boostery</span>
+                    <span className="settings-item-description">Włącz boostery podczas sesji (tylko kupione)</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                    {getItemsByCategory('boost')
+                      .filter(item => ownedItems.includes(item.id))
+                      .map(item => {
+                        const isActive = activeBoosts.includes(item.id);
+                        return (
+                          <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', background: isActive ? 'rgba(135, 174, 115, 0.2)' : 'transparent', borderRadius: '8px' }}>
+                            <span style={{ fontSize: '12px', color: '#2d3e2d' }}>
+                              {item.icon} {item.name} - {item.effect}
+                            </span>
+                            <label className="toggle-switch" style={{ margin: 0 }}>
+                              <input 
+                                type="checkbox" 
+                                checked={isActive}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    activateItem(item);
+                                  } else {
+                                    deactivateItem(item.id, 'boost');
+                                  }
+                                }}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                          </div>
+                        );
+                      })}
+                    {getItemsByCategory('boost').filter(item => ownedItems.includes(item.id)).length === 0 && (
+                      <span style={{ fontSize: '11px', color: 'rgba(45, 62, 45, 0.6)', fontStyle: 'italic' }}>
+                        Brak kupionych boosterów - kup w sklepie
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Widok drzewa - tylko kupione */}
+                <div className="settings-item">
+                  <div className="settings-item-info">
+                    <span className="settings-item-label">Widok drzewa</span>
+                    <span className="settings-item-description">Wybierz widok drzewa podczas sesji (tylko kupione)</span>
+                  </div>
+                  <select 
+                    value={activeTreeView} 
+                    onChange={(e) => {
+                      const selectedItem = shopItems.find(item => item.id === e.target.value);
+                      if (selectedItem) {
+                        activateItem(selectedItem);
+                      } else {
+                        setActiveTreeView('default');
+                      }
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '2px solid #87AE73',
+                      background: '#FFFFE3',
+                      color: '#2d3e2d',
+                      fontSize: '12px',
+                      fontFamily: 'Manrope, sans-serif',
+                      cursor: 'pointer',
+                      minWidth: '150px'
+                    }}
+                  >
+                    <option value="default">🌳 Zwykłe drzewo (domyślne)</option>
+                    {getItemsByCategory('view')
+                      .filter(item => ownedItems.includes(item.id) || item.price === 0)
+                      .map(item => (
+                        <option key={item.id} value={item.id}>
+                          {item.icon} {item.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
               </div>
 
@@ -2127,6 +2696,11 @@ function App() {
                       </div>
                     )}
                   </div>
+
+                  {/* Wykres focus score w czasie */}
+                  {sessionSummaryData.focusHistory && sessionSummaryData.focusHistory.length > 1 && (
+                    <FocusChart history={sessionSummaryData.focusHistory} />
+                  )}
                 </>
               )}
 

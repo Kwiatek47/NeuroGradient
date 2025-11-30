@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Extension Icons</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .icon-container {
+      display: inline-block;
+      margin: 10px;
+      text-align: center;
+    }
+    canvas {
+      border: 1px solid #ddd;
+      background: white;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: #87AE73;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tworzenie ikon dla rozszerzenia Chrome</h1>
+  <p>Kliknij przycisk poniżej, aby wygenerować ikony i pobrać je.</p>
+  
+  <div id="icons"></div>
+  
+  <script>
+    const sizes = [16, 48, 128];
+    const iconsDiv = document.getElementById('icons');
+    
+    sizes.forEach(size => {
+      const container = document.createElement('div');
+      container.className = 'icon-container';
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      
+      // Rysuj prostą ikonę drzewa
+      const centerX = size / 2;
+      const centerY = size / 2;
+      
+      // Tło
+      ctx.fillStyle = '#87AE73';
+      ctx.fillRect(0, 0, size, size);
+      
+      // Pień drzewa
+      ctx.fillStyle = '#2d3e2d';
+      const trunkWidth = size * 0.15;
+      const trunkHeight = size * 0.3;
+      ctx.fillRect(centerX - trunkWidth/2, centerY + size*0.1, trunkWidth, trunkHeight);
+      
+      // Korona drzewa (koło)
+      ctx.fillStyle = '#4CAF50';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY - size*0.1, size * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Tekst
+      const label = document.createElement('div');
+      label.textContent = `${size}x${size}`;
+      label.style.marginTop = '5px';
+      
+      // Przycisk pobierania
+      const button = document.createElement('button');
+      button.textContent = `Pobierz icon${size}.png`;
+      button.onclick = () => {
+        canvas.toBlob(blob => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `icon${size}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+      };
+      
+      container.appendChild(canvas);
+      container.appendChild(label);
+      container.appendChild(button);
+      iconsDiv.appendChild(container);
+    });
+  </script>
+</body>
+</html>
+

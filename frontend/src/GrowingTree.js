@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 
 function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDuration = 0, onLowFocus = null }) {
   const canvasRef = useRef(null);
-  const chartCanvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   const [inputPDisplay, setInputPDisplay] = useState(0);
   const [eegConnected, setEegConnected] = useState(false);
@@ -17,9 +16,7 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
     lastInputP: 0, // Do śledzenia zmian
     lowFocusStartTime: null, // Czas rozpoczęcia braku skupienia
     lowFocusCallbackTriggered: false, // Czy callback został już wywołany
-    lowFocusThreshold: 30000, // 30 sekund w milisekundach
-    focusHistory: [], // Historia focus score dla wykresu
-    maxHistoryLength: 300 // Maksymalna liczba punktów (60 sekund przy 5 punktów/sekundę)
+    lowFocusThreshold: 30000 // 30 sekund w milisekundach
   });
   
   // API URL - można skonfigurować przez zmienną środowiskową
@@ -200,9 +197,6 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
 
       updateLeaves();
 
-      // Rysuj wykres focus score
-      drawChart();
-
       animationFrameRef.current = requestAnimationFrame(animate);
     }
 
@@ -218,22 +212,10 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
           stateRef.current.inputP = newInputP;
           setEegConnected(data.isActive || false);
           
-          // Dodaj do historii focus score dla wykresu
-          const timestamp = Date.now();
-          stateRef.current.focusHistory.push({
-            score: newInputP,
-            timestamp: timestamp
-          });
-          
-          // Ogranicz długość historii
-          if (stateRef.current.focusHistory.length > stateRef.current.maxHistoryLength) {
-            stateRef.current.focusHistory.shift();
-          }
-          
           // --- WYKRYWANIE DŁUGOTRWAŁEGO BRAKU SKUPIENIA ---
           // Uznajemy brak skupienia gdy score < 0.1 (blisko zera lub ujemne)
           const isLowFocus = newInputP < 0.1;
-          const now = timestamp;
+          const now = Date.now();
           
           if (isLowFocus) {
             // Jeśli brak skupienia, zacznij lub kontynuuj liczenie czasu
@@ -272,112 +254,15 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
     // Reset flagi przy starcie
     stateRef.current.lowFocusStartTime = null;
     stateRef.current.lowFocusCallbackTriggered = false;
-    stateRef.current.focusHistory = [];
     
     // Pobierz dane od razu
     fetchFocusData();
-
-    // --- RYSOWANIE WYKRESU FOCUS SCORE ---
-    const chartCanvas = chartCanvasRef.current;
-    let chartCtx = null;
-    let chartWidth = 0;
-    let chartHeight = 0;
-
-    const resizeChart = () => {
-      if (!chartCanvas) return;
-      chartWidth = Math.min(400, window.innerWidth * 0.4);
-      chartHeight = 120;
-      chartCanvas.width = chartWidth;
-      chartCanvas.height = chartHeight;
-      chartCtx = chartCanvas.getContext('2d');
-    };
-
-    const drawChart = () => {
-      if (!chartCtx || !chartCanvas) return;
-      
-      const history = stateRef.current.focusHistory;
-      if (history.length < 2) return;
-
-      // Wyczyść canvas
-      chartCtx.clearRect(0, 0, chartWidth, chartHeight);
-
-      // Tło wykresu
-      chartCtx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      chartCtx.fillRect(0, 0, chartWidth, chartHeight);
-
-      // Linia środkowa (zero)
-      chartCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-      chartCtx.lineWidth = 1;
-      chartCtx.beginPath();
-      chartCtx.moveTo(0, chartHeight / 2);
-      chartCtx.lineTo(chartWidth, chartHeight / 2);
-      chartCtx.stroke();
-
-      // Rysuj linię wykresu
-      const padding = 10;
-      const graphWidth = chartWidth - padding * 2;
-      const graphHeight = chartHeight - padding * 2;
-      const centerY = chartHeight / 2;
-
-      chartCtx.beginPath();
-      let firstPoint = true;
-
-      history.forEach((point, index) => {
-        const x = padding + (index / (history.length - 1)) * graphWidth;
-        // Mapuj score z -1..1 na wysokość wykresu
-        const y = centerY - (point.score * (graphHeight / 2));
-
-        if (firstPoint) {
-          chartCtx.moveTo(x, y);
-          firstPoint = false;
-        } else {
-          chartCtx.lineTo(x, y);
-        }
-      });
-
-      // Określ kolor na podstawie ostatniego punktu
-      const lastScore = history[history.length - 1].score;
-      let lineColor;
-      if (lastScore > 0.3) {
-        lineColor = '#4CAF50'; // Zielony - wysokie skupienie
-      } else if (lastScore > -0.3) {
-        lineColor = '#FFC107'; // Żółty - średnie skupienie
-      } else {
-        lineColor = '#F44336'; // Czerwony - niskie skupienie
-      }
-
-      chartCtx.strokeStyle = lineColor;
-      chartCtx.lineWidth = 2;
-      chartCtx.stroke();
-
-      // Rysuj wypełnienie pod wykresem
-      chartCtx.lineTo(padding + graphWidth, centerY);
-      chartCtx.lineTo(padding, centerY);
-      chartCtx.closePath();
-      chartCtx.fillStyle = lineColor + '40'; // 40 = 25% opacity
-      chartCtx.fill();
-
-      // Rysuj punkty na wykresie (co kilka punktów dla wydajności)
-      chartCtx.fillStyle = lineColor;
-      for (let i = 0; i < history.length; i += Math.max(1, Math.floor(history.length / 20))) {
-        const point = history[i];
-        const x = padding + (i / (history.length - 1)) * graphWidth;
-        const y = centerY - (point.score * (graphHeight / 2));
-        chartCtx.beginPath();
-        chartCtx.arc(x, y, 2, 0, Math.PI * 2);
-        chartCtx.fill();
-      }
-    };
-
-    resizeChart();
-    window.addEventListener('resize', resizeChart);
 
     // Start animation
     animate();
 
     return () => {
       window.removeEventListener('resize', resize);
-      window.removeEventListener('resize', resizeChart);
       clearInterval(focusDataInterval);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -442,7 +327,6 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
               e.target.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.2)';
             }}
           >
-            <span>🏠</span>
             <span>Zakończ sesję</span>
           </button>
           
@@ -469,48 +353,6 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
         ref={canvasRef}
         style={{ display: 'block' }}
       />
-      
-      {/* Wykres focus score w czasie rzeczywistym */}
-      <div style={{
-        position: 'absolute',
-        bottom: '20px',
-        right: '20px',
-        background: 'rgba(0, 0, 0, 0.5)',
-        borderRadius: '12px',
-        padding: '12px',
-        zIndex: 1002,
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
-        <div style={{
-          color: '#FFFFE3',
-          fontSize: '12px',
-          fontFamily: "'Manrope', sans-serif",
-          marginBottom: '8px',
-          fontWeight: 600,
-          textAlign: 'center'
-        }}>
-          Focus Score
-        </div>
-        <canvas 
-          ref={chartCanvasRef}
-          style={{ display: 'block', borderRadius: '8px' }}
-        />
-        <div style={{
-          color: 'rgba(255, 255, 255, 0.7)',
-          fontSize: '10px',
-          fontFamily: "'Manrope', sans-serif",
-          marginTop: '6px',
-          textAlign: 'center',
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: '8px'
-        }}>
-          <span style={{ color: '#F44336' }}>Niski</span>
-          <span style={{ color: '#FFC107' }}>Średni</span>
-          <span style={{ color: '#4CAF50' }}>Wysoki</span>
-        </div>
-      </div>
     </div>
   );
 }
