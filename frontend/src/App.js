@@ -398,11 +398,6 @@ function App() {
     { id: 'music3', category: 'music', name: 'Binaural beats', price: 150, icon: '🧠', description: 'Fale mózgowe dla maksymalnej koncentracji', audioPath: '/music/binaural-beats.mp3' },
     { id: 'music4', category: 'music', name: 'Ambient space', price: 120, icon: '🌌', description: 'Kosmiczne dźwięki dla kreatywnego flow', audioPath: '/music/ambient-space.mp3' },
     
-    // Widoki drzewa
-    { id: 'view1', category: 'view', name: 'Zwykłe drzewo', price: 0, icon: '🌳', description: 'Klasyczny widok drzewa', effect: 'visual', treeType: 'normal' },
-    { id: 'view2', category: 'view', name: 'Choinka', price: 100, icon: '🎄', description: 'Świąteczna choinka z ozdobami', effect: 'visual', treeType: 'christmas' },
-    { id: 'view3', category: 'view', name: 'Kwitnąca wiśnia', price: 120, icon: '🌸', description: 'Delikatne kwiaty wiśni', effect: 'visual', treeType: 'cherry' },
-    
     // Atmosfera
     { id: 'atmo1', category: 'atmosphere', name: 'Światło świec', price: 60, icon: '🕯️', description: 'Ciepłe światło świec dla relaksu', effect: 'relax+10%' },
     { id: 'atmo2', category: 'atmosphere', name: 'Deszcz za oknem', price: 70, icon: '🌧️', description: 'Relaksujący dźwięk deszczu', effect: 'focus+12%' },
@@ -1242,12 +1237,6 @@ function App() {
               Muzyka
             </button>
             <button 
-              className={`shop-tab ${activeShopTab === 'views' ? 'active' : ''}`} 
-              onClick={() => setActiveShopTab('views')}
-            >
-              Widoki
-            </button>
-            <button 
               className={`shop-tab ${activeShopTab === 'atmosphere' ? 'active' : ''}`} 
               onClick={() => setActiveShopTab('atmosphere')}
             >
@@ -1284,52 +1273,6 @@ function App() {
                           onClick={() => isActive ? deactivateItem(item.id, 'music') : activateItem(item)}
                         >
                           {isActive ? '✓ Aktywna' : 'Użyj'}
-                        </button>
-                      ) : (
-                        <button 
-                          className={`shop-buy-btn ${coins >= item.price ? '' : 'disabled'}`}
-                          onClick={() => buyItem(item)}
-                          disabled={coins < item.price}
-                        >
-                          {coins >= item.price ? 'Kup' : 'Za mało nasion'}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {activeShopTab === 'views' && (
-            <div className="shop-tab-content">
-              <h3 className="shop-category-title">Widoki drzewa</h3>
-              <div className="shop-items-grid">
-                {getItemsByCategory('view').map(item => {
-                  const isOwned = ownedItems.find(owned => owned.id === item.id) || item.price === 0; // Zwykłe drzewo jest darmowe
-                  const isActive = activeTreeView === item.id;
-                  return (
-                    <div key={item.id} className={`shop-item-card ${isOwned ? 'owned' : ''} ${isActive ? 'active' : ''} ${purchasingItem === item.id ? 'purchasing' : ''}`}>
-                      <div className="shop-item-icon">{item.icon}</div>
-                      <div className="shop-item-name">{item.name}</div>
-                      <div className="shop-item-description">{item.description}</div>
-                      {item.price > 0 && (
-                        <div className="shop-item-price">
-                          <span className="shop-price-icon">🌱</span>
-                          <span className="shop-price-amount">{item.price}</span>
-                        </div>
-                      )}
-                      {item.price === 0 && (
-                        <div className="shop-item-price" style={{ color: '#87AE73', fontWeight: 'bold' }}>
-                          Darmowe
-                        </div>
-                      )}
-                      {isOwned ? (
-                        <button 
-                          className={`shop-buy-btn ${isActive ? 'active-btn' : 'use-btn'}`}
-                          onClick={() => isActive ? deactivateItem(item.id, 'view') : activateItem(item)}
-                        >
-                          {isActive ? '✓ Aktywny' : 'Użyj'}
                         </button>
                       ) : (
                         <button 
@@ -1868,10 +1811,6 @@ function App() {
                   return sessionDate.getHours() >= 20;
                 }).length;
                 
-                // Obliczanie różnych widoków
-                const uniqueViews = new Set(ownedItems.filter(item => item.category === 'view').map(item => item.id));
-                const viewsCount = uniqueViews.size;
-                
                 // Obliczanie sesji >= 45 minut
                 const longSessions = allSessions.filter(session => session.duration >= 2700).length;
                 
@@ -1895,16 +1834,6 @@ function App() {
                     reward: 50,
                     icon: '🌙',
                     completed: nightSessions >= 1
-                  },
-                  {
-                    id: 'new_horizon',
-                    name: 'Nowy Horyzont',
-                    description: 'Wypróbuj 3 różne widoki',
-                    progress: Math.min(viewsCount, 3),
-                    target: 3,
-                    reward: 'Osiągnięcie',
-                    icon: '🌟',
-                    completed: viewsCount >= 3
                   },
                   {
                     id: 'absolute_focus',
@@ -2334,44 +2263,6 @@ function App() {
                   )}
                 </div>
 
-                {/* Widok drzewa - tylko kupione */}
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <span className="settings-item-label">Widok drzewa</span>
-                    <span className="settings-item-description">Wybierz widok drzewa podczas sesji (tylko kupione)</span>
-                  </div>
-                  <select 
-                    value={activeTreeView} 
-                    onChange={(e) => {
-                      const selectedItem = shopItems.find(item => item.id === e.target.value);
-                      if (selectedItem) {
-                        activateItem(selectedItem);
-                      } else {
-                        setActiveTreeView('default');
-                      }
-                    }}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: '2px solid #87AE73',
-                      background: '#FFFFE3',
-                      color: '#2d3e2d',
-                      fontSize: '12px',
-                      fontFamily: 'Manrope, sans-serif',
-                      cursor: 'pointer',
-                      minWidth: '150px'
-                    }}
-                  >
-                    <option value="default">🌳 Zwykłe drzewo (domyślne)</option>
-                    {getItemsByCategory('view')
-                      .filter(item => ownedItems.includes(item.id) || item.price === 0)
-                      .map(item => (
-                        <option key={item.id} value={item.id}>
-                          {item.icon} {item.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
               </div>
 
               {/* Sekcja 3: Zablokowane strony */}
