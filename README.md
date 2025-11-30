@@ -1,80 +1,80 @@
 # 🌳 NeuroGradient
 
-**NeuroGradient** to innowacyjna aplikacja do zarządzania czasem i skupieniem, która wykorzystuje neurofeedback z urządzeń EEG do wizualizacji poziomu koncentracji w czasie rzeczywistym. Aplikacja łączy techniki Pomodoro z gamifikacją, gdzie twoje skupienie rośnie jako wizualne drzewo.
+**NeuroGradient** is an innovative focus and time management application that uses neurofeedback from EEG devices to visualize concentration levels in real-time. The app combines Pomodoro techniques with gamification, where your focus grows as a visual tree.
 
-## 📋 Spis treści
+## 📋 Table of Contents
 
-- [Funkcjonalności](#-funkcjonalności)
-- [Technologie](#-technologie)
-- [Instalacja](#-instalacja)
-- [Uruchomienie](#-uruchomienie)
-- [Konfiguracja](#-konfiguracja)
-- [Struktura projektu](#-struktura-projektu)
-- [Użycie](#-użycie)
-- [Rozwiązywanie problemów](#-rozwiązywanie-problemów)
+- [Features](#-features)
+- [Technologies](#-technologies)
+- [Installation](#-installation)
+- [Running the Application](#-running-the-application)
+- [Configuration](#-configuration)
+- [Project Structure](#-project-structure)
+- [Usage](#-usage)
+- [Troubleshooting](#-troubleshooting)
 
-## ✨ Funkcjonalności
+## ✨ Features
 
-### 🎯 Główne funkcje
+### 🎯 Main Features
 
-- **Neurofeedback w czasie rzeczywistym** - Wizualizacja poziomu skupienia na podstawie danych z urządzenia EEG
-- **Wizualne drzewo** - Drzewo rośnie i kwitnie w zależności od twojego poziomu koncentracji
-- **Sesje Pomodoro** - Zarządzanie czasem z konfigurowalnymi sesjami skupienia
-- **Gamifikacja** - System nasion (waluta), sklep z przedmiotami i wyzwania
-- **Kalendarz aktywności** - Wizualizacja aktywności jak na GitHubie (contribution graph)
-- **Statystyki i analityka** - Szczegółowe wykresy i statystyki sesji
-- **Blokada stron** - Rozszerzenie Chrome do blokowania rozpraszających stron podczas sesji
+- **Real-time Neurofeedback** - Visualization of focus level based on EEG device data
+- **Visual Tree** - Tree grows and blooms depending on your concentration level
+- **Pomodoro Sessions** - Time management with configurable focus sessions
+- **Gamification** - Seed system (currency), shop with items, and challenges
+- **Activity Calendar** - Activity visualization like GitHub (contribution graph)
+- **Statistics & Analytics** - Detailed charts and session statistics
+- **Website Blocker** - Chrome extension to block distracting websites during sessions
 
-### 🎨 Dodatkowe funkcje
+### 🎨 Additional Features
 
-- **Ćwiczenia oddechowe** - Wspomaganie koncentracji przed sesją
-- **Muzyka i atmosfera** - Różne opcje dźwiękowe do wyboru
-- **Boostery** - Tymczasowe wzmocnienia tempa wzrostu drzewa
-- **Widoki drzewa** - Różne style wizualne (zwykłe, choinka, kwitnąca wiśnia)
-- **Osiągnięcia** - System odznak za różne osiągnięcia
-- **Ranking** - Porównywanie wyników z innymi użytkownikami
-- **Mapa 3D** - Wizualizacja posadzonych drzew na mapie
+- **Breathing Exercises** - Concentration support before sessions
+- **Music & Atmosphere** - Various sound options to choose from
+- **Boosters** - Temporary enhancements for tree growth speed
+- **Tree Views** - Different visual styles (normal, Christmas tree, cherry blossom)
+- **Achievements** - Badge system for various achievements
+- **Leaderboard** - Compare results with other users
+- **3D Map** - Visualization of planted trees on a map
 
-## 🛠 Technologie
+## 🛠 Technologies
 
 ### Frontend
-- **React 18.2.0** - Framework UI
-- **React Three Fiber** - Renderowanie 3D
-- **Three.js** - Grafika 3D
-- **Canvas API** - Rysowanie drzewa i wykresów
+- **React 18.2.0** - UI Framework
+- **React Three Fiber** - 3D Rendering
+- **Three.js** - 3D Graphics
+- **Canvas API** - Tree and chart drawing
 
 ### Backend
 - **Node.js** - Runtime
-- **Express** - Framework serwera
-- **CORS** - Obsługa cross-origin requests
+- **Express** - Server framework
+- **CORS** - Cross-origin request handling
 
 ### EEG Service
-- **Python 3** - Przetwarzanie sygnałów EEG
-- **BrainAccess SDK** - Integracja z urządzeniami EEG
-- **NumPy, SciPy** - Analiza sygnałów
-- **MNE-Python** - Przetwarzanie danych EEG
+- **Python 3** - EEG signal processing
+- **BrainAccess SDK** - EEG device integration
+- **NumPy, SciPy** - Signal analysis
+- **MNE-Python** - EEG data processing
 
-### Infrastruktura
-- **Docker & Docker Compose** - Konteneryzacja
-- **Chrome Extension** - Blokada stron
+### Infrastructure
+- **Docker & Docker Compose** - Containerization
+- **Chrome Extension** - Website blocker
 
-## 📦 Instalacja
+## 📦 Installation
 
-### Wymagania
+### Requirements
 
-- **Node.js** 16+ i npm
-- **Docker** i Docker Compose
-- **Python 3.8+** (dla EEG service)
-- **Urządzenie EEG** (opcjonalne, np. BrainAccess BA MINI)
+- **Node.js** 16+ and npm
+- **Docker** and Docker Compose
+- **Python 3.8+** (for EEG service)
+- **EEG Device** (optional, e.g., BrainAccess BA MINI)
 
-### Krok 1: Sklonuj repozytorium
+### Step 1: Clone the repository
 
 ```bash
 git clone <repository-url>
 cd NeuroGradient
 ```
 
-### Krok 2: Zainstaluj zależności
+### Step 2: Install dependencies
 
 #### Frontend
 ```bash
@@ -95,19 +95,43 @@ cd ..
 pip install -r eeg-service/requirements.txt
 ```
 
-## 🚀 Uruchomienie
+## 🚀 Running the Application
 
-### Opcja 1: Uruchomienie z Dockerem (zalecane)
+### Option 1: Running with Docker (Recommended)
+
+#### Start Backend and Frontend
 
 ```bash
 docker-compose up --build
 ```
 
-Aplikacja będzie dostępna pod:
+The application will be available at:
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:3001
 
-### Opcja 2: Uruchomienie lokalne
+#### Start EEG Service (on host machine)
+
+The EEG service must run on the host machine (outside Docker) to access Bluetooth/USB devices.
+
+**Windows:**
+```bash
+# Using batch script
+run-eeg.bat
+
+# Or directly
+cd eeg-service
+python main.py
+```
+
+**Linux/Mac:**
+```bash
+cd eeg-service
+python main.py
+```
+
+**Note:** Make sure the backend is running before starting the EEG service. The service will check the connection and continue even if the backend is not available.
+
+### Option 2: Local Development
 
 #### Terminal 1 - Backend
 ```bash
@@ -121,19 +145,15 @@ cd frontend
 npm start
 ```
 
-#### Terminal 3 - EEG Service (opcjonalne)
+#### Terminal 3 - EEG Service (optional)
 ```bash
-# Windows
-run-eeg.bat
-
-# Lub bezpośrednio
 cd eeg-service
 python main.py
 ```
 
-## ⚙️ Konfiguracja
+## ⚙️ Configuration
 
-### Zmienne środowiskowe
+### Environment Variables
 
 #### Frontend (.env)
 ```env
@@ -141,230 +161,254 @@ REACT_APP_API_URL=http://localhost:3001
 ```
 
 #### Backend
-Backend używa domyślnych portów. Możesz zmienić port w `docker-compose.yml`.
+The backend uses default ports. You can change the port in `docker-compose.yml`.
 
 #### EEG Service
 ```bash
 # Windows PowerShell
 $env:API_URL="http://localhost:3001/api/focus-data"
 python eeg-service/main.py
+
+# Linux/Mac
+export API_URL="http://localhost:3001/api/focus-data"
+python eeg-service/main.py
 ```
 
-### Konfiguracja urządzenia EEG
+### EEG Device Configuration
 
-Edytuj `eeg-service/main.py`:
+Edit `eeg-service/main.py`:
 ```python
-DEVICE_NAME = "BA MINI 048"  # Nazwa twojego urządzenia
+DEVICE_NAME = "BA MINI 048"  # Your device name
 ```
 
-### Rozszerzenie Chrome
+### Chrome Extension
 
-1. Otwórz Chrome i przejdź do `chrome://extensions/`
-2. Włącz "Tryb deweloperski"
-3. Kliknij "Załaduj rozpakowane"
-4. Wybierz folder `chrome-extension`
+1. Open Chrome and go to `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `chrome-extension` folder
 
-Szczegółowe instrukcje: [chrome-extension/QUICK_START.md](chrome-extension/QUICK_START.md)
+Detailed instructions: [chrome-extension/QUICK_START.md](chrome-extension/QUICK_START.md)
 
-## 📁 Struktura projektu
+## 📁 Project Structure
 
 ```
 NeuroGradient/
-├── frontend/              # Aplikacja React
+├── frontend/              # React application
 │   ├── src/
-│   │   ├── App.js        # Główny komponent
-│   │   ├── GrowingTree.js # Komponent drzewa
-│   │   ├── Board3D.js    # Mapa 3D
-│   │   └── IntroScreen.js # Ekran intro
+│   │   ├── App.js        # Main component
+│   │   ├── GrowingTree.js # Tree component
+│   │   ├── Board3D.js    # 3D Map
+│   │   └── IntroScreen.js # Intro screen
 │   ├── public/
-│   │   └── music/        # Pliki muzyczne
+│   │   └── music/        # Music files
 │   └── package.json
 │
-├── backend/               # Serwer Express
-│   ├── server.js         # Główny serwer
+├── backend/               # Express server
+│   ├── server.js         # Main server
 │   └── package.json
 │
-├── eeg-service/          # Serwis EEG (Python)
-│   ├── main.py           # Główny skrypt
+├── eeg-service/          # EEG service (Python)
+│   ├── main.py           # Main script
 │   └── requirements.txt
 │
-├── chrome-extension/      # Rozszerzenie Chrome
+├── chrome-extension/      # Chrome extension
 │   ├── manifest.json
 │   ├── background.js
 │   ├── content.js
 │   └── blocked.html
 │
-├── docker-compose.yml     # Konfiguracja Docker
-└── README.md             # Ten plik
+├── docker-compose.yml     # Docker configuration
+└── README.md             # This file
 ```
 
-## 🎮 Użycie
+## 🎮 Usage
 
-### Rozpoczęcie sesji
+### Starting a Session
 
-1. **Otwórz aplikację** w przeglądarce (http://localhost:3000)
-2. **Kliknij "Rozpocznij sesję"**
-3. **Wykonaj ćwiczenia oddechowe** (jeśli włączone)
-4. **Obserwuj drzewo** - rośnie w zależności od twojego poziomu skupienia
-5. **Zakończ sesję** - kliknij "Zakończ sesję"
+1. **Open the application** in your browser (http://localhost:3000)
+2. **Click "Start Session"**
+3. **Complete breathing exercises** (if enabled)
+4. **Watch the tree** - it grows depending on your focus level
+5. **End the session** - click "End Session"
 
-### Sklep i przedmioty
+### Shop and Items
 
-- **Kup przedmioty** w sklepie za nasiona (waluta)
-- **Aktywuj muzykę/atmosferę** przed lub podczas sesji
-- **Użyj boosterów** dla szybszego wzrostu drzewa
-- **Wybierz widok drzewa** - różne style wizualne
+- **Buy items** in the shop with seeds (currency)
+- **Activate music/atmosphere** before or during sessions
+- **Use boosters** for faster tree growth
+- **Choose tree view** - different visual styles
 
-### Konfiguracja
+### Configuration
 
-Otwórz **Konfigurację** (ikona koła zębatego) aby:
-- Ustawić muzykę do intro
-- Skonfigurować sesję (czas trwania, auto-start, timer)
-- Dodać zablokowane strony
-- Wybrać efekty dla sesji (tylko kupione przedmioty)
+Open **Settings** (gear icon) to:
+- Set intro music
+- Configure session (duration, auto-start, timer)
+- Add blocked websites
+- Select effects for session (only purchased items)
 
-### Kalendarz
+### Calendar
 
-- **Otwórz kalendarz** (ikona kalendarza)
-- **Zobacz aktywność** - kolory jak na GitHubie:
-  - Szary = brak aktywności
-  - Jasny zielony = < 15 min
-  - Zielony = 15-30 min
-  - Ciemny zielony = 30-60 min
-  - Najciemniejszy zielony = 60+ min
-- **Kliknij dzień** aby zobaczyć szczegóły
+- **Open calendar** (calendar icon)
+- **View activity** - colors like GitHub:
+  - Gray = no activity
+  - Light green = < 15 min
+  - Green = 15-30 min
+  - Dark green = 30-60 min
+  - Darkest green = 60+ min
+- **Click a day** to see details
 
-### Wyzwania
+### Challenges
 
-- **Otwórz Wyzwania** (ikona tarczy)
-- **Ukończ wyzwania** aby zdobyć nagrody
-- **Odbierz nagrody** - kliknij "Odbierz nagrodę" po ukończeniu
+- **Open Challenges** (target icon)
+- **Complete challenges** to earn rewards
+- **Claim rewards** - click "Claim Reward" after completion
 
-### Blokada stron
+### Website Blocker
 
-1. **Dodaj URL** w Konfiguracji → Zablokowane strony
-2. **Rozpocznij sesję**
-3. **Zablokowane strony** będą przekierowane do strony blokady
+1. **Add URL** in Settings → Blocked Websites
+2. **Start a session**
+3. **Blocked websites** will be redirected to a blocking page
 
-## 🔧 Rozwiązywanie problemów
+## 🔧 Troubleshooting
 
-### Backend nie odpowiada
+### Backend not responding
 
 ```bash
-# Sprawdź logi
+# Check logs
 docker-compose logs backend
 
-# Sprawdź czy działa
+# Check if it's running
 curl http://localhost:3001/api/health
 ```
 
-### Frontend nie ładuje się
+### Frontend not loading
 
 ```bash
-# Sprawdź logi
+# Check logs
 docker-compose logs frontend
 
-# Sprawdź czy port 3000 jest wolny
+# Check if port 3000 is free
+# Windows
 netstat -ano | findstr :3000
+
+# Linux/Mac
+lsof -i :3000
 ```
 
-### EEG Service nie łączy się
+### EEG Service not connecting
 
-1. **Sprawdź połączenie Bluetooth** - urządzenie musi być sparowane
-2. **Sprawdź nazwę urządzenia** w `eeg-service/main.py`
-3. **Sprawdź logi** - powinny pokazywać status połączenia
-4. **Upewnij się, że backend działa** - `http://localhost:3001/api/health`
+1. **Check Bluetooth connection** - device must be paired
+2. **Check device name** in `eeg-service/main.py`
+3. **Check logs** - should show connection status
+4. **Make sure backend is running** - `http://localhost:3001/api/health`
 
-### Rozszerzenie Chrome nie blokuje stron
+**Common errors:**
 
-1. **Sprawdź czy rozszerzenie jest włączone** w `chrome://extensions/`
-2. **Sprawdź czy sesja jest aktywna** - rozszerzenie działa tylko podczas sesji
-3. **Sprawdź konsolę rozszerzenia** - `chrome://extensions/` → Szczegóły → Service Worker
-4. **Sprawdź czy aplikacja jest otwarta** na `localhost:3000`
+```bash
+# If you see "Bluetooth not enabled"
+# - Enable Bluetooth in system settings
+# - Make sure EEG device is paired
 
-### Muzyka nie gra
+# If you see "Connection refused"
+# - Check if backend is running: docker-compose ps
+# - Check backend logs: docker-compose logs backend
 
-1. **Sprawdź konsolę przeglądarki** (F12) - mogą być błędy ładowania plików
-2. **Sprawdź czy pliki istnieją** w `frontend/public/music/`
-3. **Sprawdź autoplay policy** - niektóre przeglądarki wymagają interakcji użytkownika
-4. **Sprawdź czy przedmiot jest kupiony i aktywowany**
+# If you see "Module not found" (e.g., brainaccess)
+# - Install dependencies: pip install -r eeg-service/requirements.txt
+# - If brainaccess is not in PyPI, check installation documentation
+```
 
-### Kolory w kalendarzu nie są widoczne
+### Chrome Extension not blocking websites
 
-1. **Sprawdź czy masz sesje w historii** - kolory pojawiają się tylko dla dni z aktywnością
-2. **Odśwież stronę** (F5)
-3. **Sprawdź konsolę** - mogą być błędy JavaScript
+1. **Check if extension is enabled** in `chrome://extensions/`
+2. **Check if session is active** - extension only works during sessions
+3. **Check extension console** - `chrome://extensions/` → Details → Service Worker
+4. **Check if application is open** on `localhost:3000`
 
-## 📊 System nagród
+### Music not playing
 
-### Nasiona (waluta)
-- **1 nasionko = 1 minuta sesji**
-- Można wydać w sklepie na:
-  - Muzykę
-  - Atmosferę
-  - Boostery
-  - Widoki drzewa
-  - Drzewa do obsadzenia
+1. **Check browser console** (F12) - there may be file loading errors
+2. **Check if files exist** in `frontend/public/music/`
+3. **Check autoplay policy** - some browsers require user interaction
+4. **Check if item is purchased and activated**
 
-### Osiągnięcia
-- **Pierwsza sesja** - 10 nasion
-- **10 sesji** - 50 nasion
-- **50 sesji** - 200 nasion
-- **100 sesji** - 500 nasion
-- **Godzina skupienia** - 100 nasion
-- **3/7/30 dni z rzędu** - 75/200/1000 nasion
-- **10/50 godzin nauki** - 150/500 nasion
+### Calendar colors not visible
 
-### Wyzwania
-- **Budowniczy Nawyków** - 7 sesji w tygodniu → 100 nasion
-- **Nocny Marek** - Sesja po 20:00 → 50 nasion
-- **Nowy Horyzont** - 3 różne widoki → Osiągnięcie
-- **Skupienie Absolutne** - Sesja 45+ min → 75 nasion
+1. **Check if you have sessions in history** - colors only appear for days with activity
+2. **Refresh the page** (F5)
+3. **Check console** - there may be JavaScript errors
 
-## 🎨 Personalizacja
+## 📊 Reward System
 
-### Muzyka
-- Muzyka klasyczna
-- Dźwięki natury
+### Seeds (Currency)
+- **1 seed = 1 minute of session**
+- Can be spent in the shop on:
+  - Music
+  - Atmosphere
+  - Boosters
+  - Tree views
+  - Trees to plant
+
+### Achievements
+- **First session** - 10 seeds
+- **10 sessions** - 50 seeds
+- **50 sessions** - 200 seeds
+- **100 sessions** - 500 seeds
+- **One hour of focus** - 100 seeds
+- **3/7/30 day streak** - 75/200/1000 seeds
+- **10/50 hours of study** - 150/500 seeds
+
+### Challenges
+- **Habit Builder** - 7 sessions per week → 100 seeds
+- **Night Owl** - Session after 8 PM → 50 seeds
+- **New Horizon** - 3 different views → Achievement
+- **Absolute Focus** - 45+ min session → 75 seeds
+
+## 🎨 Personalization
+
+### Music
+- Classical music
+- Nature sounds
 - Binaural beats
 - Ambient space
 
-### Atmosfera
-- Światło świec
-- Deszcz za oknem
-- Kominek
+### Atmosphere
+- Candlelight
+- Rain outside
+- Fireplace
 
-### Widoki drzewa
-- Zwykłe drzewo (darmowe)
-- Choinka
-- Kwitnąca wiśnia
+### Tree Views
+- Normal tree (free)
+- Christmas tree
+- Cherry blossom
 
-## 📝 Notatki dla deweloperów
+## 📝 Developer Notes
 
-### Dodawanie nowych przedmiotów
+### Adding New Items
 
-Edytuj `frontend/src/App.js` - tablica `shopItems`:
+Edit `frontend/src/App.js` - `shopItems` array:
 ```javascript
 {
   id: 'unique_id',
   category: 'music|atmosphere|boost|view|tree',
-  name: 'Nazwa',
+  name: 'Name',
   price: 100,
   icon: '🎵',
-  description: 'Opis',
+  description: 'Description',
   effect: 'focus+10%',
-  audioPath: '/music/file.mp3' // opcjonalne
+  audioPath: '/music/file.mp3' // optional
 }
 ```
 
-### Dodawanie nowych wyzwań
+### Adding New Challenges
 
-Edytuj `frontend/src/App.js` - tablica `challenges`:
+Edit `frontend/src/App.js` - `challenges` array:
 ```javascript
 {
   id: 'challenge_id',
-  name: 'Nazwa wyzwania',
-  description: 'Opis',
+  name: 'Challenge Name',
+  description: 'Description',
   progress: currentProgress,
   target: targetValue,
   reward: 100,
@@ -376,27 +420,146 @@ Edytuj `frontend/src/App.js` - tablica `challenges`:
 ### API Endpoints
 
 #### Backend
-- `POST /api/session/start` - Rozpocznij sesję
-- `POST /api/session/stop` - Zakończ sesję
-- `POST /api/focus-data` - Wyślij dane focus score
-- `GET /api/focus-data` - Pobierz ostatni focus score
-- `GET /api/health` - Status serwera
+- `POST /api/session/start` - Start session
+- `POST /api/session/stop` - Stop session
+- `POST /api/focus-data` - Send focus score data
+- `GET /api/focus-data` - Get last focus score
+- `GET /api/health` - Server status
 
-## 🤝 Wsparcie
+## 🐳 Docker Commands
 
-W razie problemów:
-1. Sprawdź sekcję [Rozwiązywanie problemów](#-rozwiązywanie-problemów)
-2. Sprawdź logi w konsoli przeglądarki (F12)
-3. Sprawdź logi Docker: `docker-compose logs`
+### Build and Start
+```bash
+# Build and start all services
+docker-compose up --build
 
-## 📄 Licencja
+# Start in background
+docker-compose up -d --build
 
-[Określ licencję]
+# Start only backend and frontend
+docker-compose up --build backend frontend
+```
 
-## 👥 Autorzy
+### View Logs
+```bash
+# All services
+docker-compose logs
 
-[Twoje imię/nazwa zespołu]
+# Specific service
+docker-compose logs backend
+docker-compose logs frontend
+
+# Follow logs
+docker-compose logs -f backend
+```
+
+### Stop Services
+```bash
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+```
+
+### Restart Services
+```bash
+# Restart all services
+docker-compose restart
+
+# Restart specific service
+docker-compose restart backend
+```
+
+## 🐍 Running EEG Service
+
+### Prerequisites
+
+1. **Python 3.8+** installed
+2. **Dependencies installed:**
+   ```bash
+   pip install -r eeg-service/requirements.txt
+   ```
+3. **Backend running** (optional, but recommended)
+
+### Running the Service
+
+#### Windows
+```bash
+# Option 1: Using batch script
+run-eeg.bat
+
+# Option 2: Directly
+cd eeg-service
+python main.py
+```
+
+#### Linux/Mac
+```bash
+cd eeg-service
+python main.py
+```
+
+### Configuration
+
+#### Device Name
+Edit `eeg-service/main.py`:
+```python
+DEVICE_NAME = "BA MINI 048"  # Change to your device name
+```
+
+#### API URL
+Set environment variable:
+```bash
+# Windows PowerShell
+$env:API_URL="http://localhost:3001/api/focus-data"
+
+# Linux/Mac
+export API_URL="http://localhost:3001/api/focus-data"
+```
+
+### Verification
+
+1. **Backend running?** Check: `http://localhost:3001/api/health`
+2. **Frontend running?** Check: `http://localhost:3000`
+3. **EEG sending data?** In the console you should see:
+   ```
+   FOCUS: 0.123 |████░░░░░░░░░░░░░░░░|
+   ```
+
+### Troubleshooting EEG Service
+
+#### Error: "Bluetooth not enabled"
+- Make sure Bluetooth is enabled in system settings
+- Check if EEG device is paired
+
+#### Error: "Connection refused" when sending data
+- Check if backend is running: `docker-compose ps`
+- Check backend logs: `docker-compose logs backend`
+
+#### Error: Module not found (e.g., `brainaccess`)
+- Install dependencies: `pip install -r eeg-service/requirements.txt`
+- If `brainaccess` is not in PyPI, check installation documentation
+
+#### Service continues without backend
+- This is normal - the service will process data but not send it
+- Start the backend to enable data transmission
+
+## 🤝 Support
+
+If you encounter problems:
+1. Check the [Troubleshooting](#-troubleshooting) section
+2. Check browser console logs (F12)
+3. Check Docker logs: `docker-compose logs`
+
+## 📄 License
+
+[Specify license]
+
+## 👥 Authors
+
+[Your name/team name]
 
 ---
 
-**NeuroGradient** - Rośnij razem ze swoim skupieniem 🌳✨
+**NeuroGradient** - Grow with your focus 🌳✨
