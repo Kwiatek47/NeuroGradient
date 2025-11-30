@@ -47,6 +47,73 @@ function App() {
     return saved ? JSON.parse(saved) : {};
   });
   const [purchasingItem, setPurchasingItem] = useState(null); // ID przedmiotu w trakcie animacji zakupu
+  const [plantedTrees, setPlantedTrees] = useState(() => {
+    // Ładowanie posadzonych drzew z localStorage
+    const saved = localStorage.getItem('plantedTrees');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [selectedTreeType, setSelectedTreeType] = useState(null); // Typ drzewa wybrany do obsadzenia
+  
+  // Ustawienia konfiguracji
+  const [introMusic, setIntroMusic] = useState(() => {
+    const saved = localStorage.getItem('introMusic');
+    return saved || '';
+  });
+  const [breathingExercises, setBreathingExercises] = useState(() => {
+    const saved = localStorage.getItem('breathingExercises');
+    return saved ? JSON.parse(saved) : { enabled: false, duration: 60 };
+  });
+  const [sessionConfig, setSessionConfig] = useState(() => {
+    const saved = localStorage.getItem('sessionConfig');
+    return saved ? JSON.parse(saved) : { defaultDuration: 25, autoStart: false };
+  });
+  const [blockedUrls, setBlockedUrls] = useState(() => {
+    const saved = localStorage.getItem('blockedUrls');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [newUrl, setNewUrl] = useState('');
+  
+  // Leaderboard i spectating
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [spectatingUserId, setSpectatingUserId] = useState(null);
+  const [leaderboardSortBy, setLeaderboardSortBy] = useState('trees'); // 'trees' lub 'coins'
+  
+  // Symulacja danych użytkowników dla leaderboard (w prawdziwej aplikacji byłoby to z backendu)
+  const [leaderboardUsers] = useState(() => {
+    const saved = localStorage.getItem('leaderboardUsers');
+    if (saved) return JSON.parse(saved);
+    
+    // Generuj przykładowych użytkowników
+    const users = [
+      { id: 'current', name: 'Ty', trees: plantedTrees.length, coins: coins, avatar: '👤' },
+      { id: 'user1', name: 'Anna', trees: 45, coins: 2500, avatar: '🌺' },
+      { id: 'user2', name: 'Marek', trees: 38, coins: 3200, avatar: '🌳' },
+      { id: 'user3', name: 'Kasia', trees: 52, coins: 1800, avatar: '🌸' },
+      { id: 'user4', name: 'Tomek', trees: 29, coins: 4100, avatar: '🌲' },
+      { id: 'user5', name: 'Ola', trees: 67, coins: 1500, avatar: '🌿' },
+      { id: 'user6', name: 'Piotr', trees: 34, coins: 2800, avatar: '🍃' },
+      { id: 'user7', name: 'Magda', trees: 41, coins: 2200, avatar: '🌴' },
+    ];
+    localStorage.setItem('leaderboardUsers', JSON.stringify(users));
+    return users;
+  });
+  
+  // Aktualizuj dane aktualnego użytkownika w leaderboard
+  useEffect(() => {
+    const saved = localStorage.getItem('leaderboardUsers');
+    if (!saved) return;
+    
+    const users = JSON.parse(saved);
+    const currentUserIndex = users.findIndex(u => u.id === 'current');
+    if (currentUserIndex !== -1) {
+      users[currentUserIndex] = {
+        ...users[currentUserIndex],
+        trees: plantedTrees.length,
+        coins: coins
+      };
+      localStorage.setItem('leaderboardUsers', JSON.stringify(users));
+    }
+  }, [plantedTrees.length, coins]);
 
   // Definicja przedmiotów sklepu - użyj useMemo aby uniknąć problemów z useEffect
   const shopItems = useMemo(() => [
@@ -73,11 +140,22 @@ function App() {
     
     // Powiadomienia i przypomnienia
     { id: 'notif1', category: 'notification', name: 'Mądre przypomnienia', price: 50, icon: '🔔', description: 'Inteligentne przypomnienia o przerwach', effect: 'reminders' },
-    { id: 'notif2', category: 'notification', name: 'Motywacyjne cytaty', price: 40, icon: '💬', description: 'Inspirujące cytaty podczas nauki', effect: 'motivation' }
+    { id: 'notif2', category: 'notification', name: 'Motywacyjne cytaty', price: 40, icon: '💬', description: 'Inspirujące cytaty podczas nauki', effect: 'motivation' },
+    
+    // Drzewa do obsadzenia na mapie
+    { id: 'tree1', category: 'tree', name: 'Zwykłe drzewo', price: 50, icon: '🌳', description: 'Klasyczne drzewo do obsadzenia', effect: 'dekoracja', treeType: 'normal' },
+    { id: 'tree2', category: 'tree', name: 'Choinka', price: 100, icon: '🎄', description: 'Świąteczna choinka z ozdobami', effect: 'dekoracja', treeType: 'christmas' },
+    { id: 'tree3', category: 'tree', name: 'Kwitnąca wiśnia', price: 120, icon: '🌸', description: 'Delikatne kwiaty wiśni', effect: 'dekoracja', treeType: 'cherry' }
   ], []);
 
   const buyItem = (item) => {
-    if (coins >= item.price && !ownedItems.find(owned => owned.id === item.id)) {
+    // Dla drzew pozwól na wielokrotne zakupy (każdy zakup = jedno drzewo do posadzenia)
+    const isTree = item.category === 'tree';
+    const canBuy = isTree 
+      ? coins >= item.price 
+      : coins >= item.price && !ownedItems.find(owned => owned.id === item.id);
+    
+    if (canBuy) {
       // Animacja zakupu
       setPurchasingItem(item.id);
       setTimeout(() => {
@@ -85,11 +163,15 @@ function App() {
       }, 600);
       
       const newCoins = coins - item.price;
-      const newOwnedItems = [...ownedItems, item];
       setCoins(newCoins);
       localStorage.setItem('coins', newCoins.toString());
-      setOwnedItems(newOwnedItems);
-      localStorage.setItem('ownedItems', JSON.stringify(newOwnedItems));
+      
+      // Dla drzew nie dodawaj do ownedItems (pozwól na wielokrotne zakupy)
+      if (!isTree) {
+        const newOwnedItems = [...ownedItems, item];
+        setOwnedItems(newOwnedItems);
+        localStorage.setItem('ownedItems', JSON.stringify(newOwnedItems));
+      }
       
       // Aktywuj przedmiot automatycznie po zakupie
       if (item.category === 'music') {
@@ -100,8 +182,31 @@ function App() {
         setActiveBoosts([...activeBoosts, item.id]);
       } else if (item.category === 'atmosphere' || item.category === 'notification') {
         setActiveAtmosphere([...activeAtmosphere, item.id]);
+      } else if (item.category === 'tree') {
+        // Dla drzew - ustaw jako wybrane do obsadzenia
+        setSelectedTreeType(item.treeType);
       }
     }
+  };
+
+  // Funkcja do obsadzania drzewa na mapie
+  const plantTree = (row, col) => {
+    if (!selectedTreeType) return;
+    
+    // Pozwól na obsadzanie drzew na każdym polu (nawet jeśli już jest drzewo)
+    const newTree = {
+      row,
+      col,
+      type: selectedTreeType,
+      id: Date.now() // Unikalne ID
+    };
+    
+    const newPlantedTrees = [...plantedTrees, newTree];
+    setPlantedTrees(newPlantedTrees);
+    localStorage.setItem('plantedTrees', JSON.stringify(newPlantedTrees));
+    
+    // Usuń wybór po obsadzeniu
+    setSelectedTreeType(null);
   };
 
   const activateItem = (item) => {
@@ -521,10 +626,25 @@ function App() {
             setCalendarOpen(false);
             setProfileOpen(false);
             setSettingsOpen(false);
+            setLeaderboardOpen(false);
           }}
         >
           <span className="icon-challenges"></span>
           <span>Wyzwania</span>
+        </button>
+        <button 
+          className={`nav-item ${leaderboardOpen ? 'active' : ''}`}
+          onClick={() => {
+            setLeaderboardOpen(!leaderboardOpen);
+            setMenuOpen(false);
+            setCalendarOpen(false);
+            setProfileOpen(false);
+            setChallengesOpen(false);
+            setSettingsOpen(false);
+          }}
+        >
+          <span className="icon-leaderboard"></span>
+          <span>Ranking</span>
         </button>
         <button 
           className={`nav-item ${settingsOpen ? 'active' : ''}`}
@@ -534,6 +654,7 @@ function App() {
             setCalendarOpen(false);
             setProfileOpen(false);
             setChallengesOpen(false);
+            setLeaderboardOpen(false);
           }}
         >
           <span className="icon-settings"></span>
@@ -574,6 +695,12 @@ function App() {
               onClick={() => setActiveShopTab('atmosphere')}
             >
               Atmosfera
+            </button>
+            <button 
+              className={`shop-tab ${activeShopTab === 'trees' ? 'active' : ''}`} 
+              onClick={() => setActiveShopTab('trees')}
+            >
+              Drzewa
             </button>
           </div>
 
@@ -742,10 +869,66 @@ function App() {
           </div>
             </div>
           )}
+
+          {activeShopTab === 'trees' && (
+            <div className="shop-tab-content">
+              <h3 className="shop-category-title">Drzewa do obsadzenia</h3>
+              {selectedTreeType && (
+                <div className="tree-selection-hint" style={{ 
+                  padding: '10px', 
+                  marginBottom: '15px', 
+                  background: '#87AE73', 
+                  borderRadius: '8px',
+                  color: 'white',
+                  textAlign: 'center'
+                }}>
+                  Wybrano drzewo! Kliknij na mapie, aby je obsadzić.
+                  <button 
+                    onClick={() => setSelectedTreeType(null)}
+                    style={{ 
+                      marginLeft: '10px', 
+                      padding: '5px 10px', 
+                      background: 'white', 
+                      color: '#87AE73',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Anuluj
+                  </button>
+                </div>
+              )}
+              <div className="shop-items-grid">
+                {getItemsByCategory('tree').map(item => {
+                  const isSelected = selectedTreeType === item.treeType;
+                  return (
+                    <div key={item.id} className={`shop-item-card ${isSelected ? 'active' : ''} ${purchasingItem === item.id ? 'purchasing' : ''}`}>
+                      <div className="shop-item-icon">{item.icon}</div>
+                      <div className="shop-item-name">{item.name}</div>
+                      <div className="shop-item-description">{item.description}</div>
+                      <div className="shop-item-effect">{item.effect}</div>
+                      <div className="shop-item-price">
+                        <span className="shop-price-icon">🌱</span>
+                        <span className="shop-price-amount">{item.price}</span>
+                      </div>
+                      <button 
+                        className={`shop-buy-btn ${isSelected ? 'active-btn' : ''} ${coins >= item.price ? '' : 'disabled'}`}
+                        onClick={() => buyItem(item)}
+                        disabled={coins < item.price}
+                      >
+                        {isSelected ? '✓ Wybrane' : coins >= item.price ? 'Kup i obsadź' : 'Za mało nasion'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {(menuOpen || calendarOpen || profileOpen || challengesOpen || settingsOpen) && (
+      {(menuOpen || calendarOpen || profileOpen || challengesOpen || settingsOpen || leaderboardOpen) && (
         <div 
           className="overlay" 
           onClick={() => {
@@ -754,13 +937,66 @@ function App() {
             setProfileOpen(false);
             setChallengesOpen(false);
             setSettingsOpen(false);
+            setLeaderboardOpen(false);
+            setSpectatingUserId(null);
           }} 
         />
       )}
 
       {/* Plansza 3D */}
-      <div className="board-container">
-        <Board3D />
+      <div className={`board-container ${spectatingUserId ? 'spectating-mode' : ''}`}>
+        {spectatingUserId ? (
+          <div className="spectating-wrapper">
+            <div className="spectating-header">
+              <button 
+                className="spectating-back-btn"
+                onClick={() => setSpectatingUserId(null)}
+                title="Powrót do mojego lasu"
+              >
+                🌳 Mój las
+              </button>
+              <div className="spectating-user-info">
+                {(() => {
+                  const user = leaderboardUsers.find(u => u.id === spectatingUserId);
+                  return user ? (
+                    <>
+                      <span className="spectating-avatar">{user.avatar}</span>
+                      <span className="spectating-name">{user.name}</span>
+                    </>
+                  ) : null;
+                })()}
+              </div>
+            </div>
+            <Board3D
+              plantedTrees={(() => {
+                // Symulacja drzew użytkownika (w prawdziwej aplikacji byłoby z backendu)
+                const user = leaderboardUsers.find(u => u.id === spectatingUserId);
+                if (!user) return [];
+                // Generuj przykładowe drzewa dla spectating
+                const mockTrees = [];
+                for (let i = 0; i < Math.min(user.trees, 64); i++) {
+                  mockTrees.push({
+                    id: `spectating-${i}`,
+                    row: Math.floor(i / 8),
+                    col: i % 8,
+                    type: ['normal', 'christmas', 'cherry'][Math.floor(Math.random() * 3)]
+                  });
+                }
+                return mockTrees;
+              })()}
+              onSquareClick={null}
+              selectedTreeType={null}
+              isSpectating={true}
+            />
+          </div>
+        ) : (
+          <Board3D 
+            plantedTrees={plantedTrees} 
+            onSquareClick={plantTree}
+            selectedTreeType={selectedTreeType}
+            isSpectating={false}
+          />
+        )}
       </div>
 
       {/* Box aktywności */}
@@ -986,13 +1222,6 @@ function App() {
                 </label>
               </div>
               <div className="profile-setting-item">
-                <span>Ciemny motyw</span>
-                <label className="toggle-switch">
-                  <input type="checkbox" />
-                  <span className="toggle-slider"></span>
-                </label>
-              </div>
-              <div className="profile-setting-item">
                 <span>Eksport danych</span>
                 <button className="profile-action-btn">Eksportuj</button>
               </div>
@@ -1127,6 +1356,89 @@ function App() {
         </div>
       </div>
 
+      {/* Panel Leaderboard */}
+      <div className={`side-panel leaderboard-panel ${leaderboardOpen ? 'open' : ''}`}>
+        <div className="panel-content">
+          <button className="panel-close" onClick={() => {
+            setLeaderboardOpen(false);
+            setSpectatingUserId(null);
+          }}>×</button>
+          <div className="leaderboard-content">
+            <div className="leaderboard-header">
+              <h2>🏆 Ranking</h2>
+              <p className="leaderboard-subtitle">Zobacz najlepszych użytkowników</p>
+            </div>
+
+            <div className="leaderboard-tabs">
+              <button 
+                className={`leaderboard-tab ${leaderboardSortBy === 'trees' ? 'active' : ''}`}
+                onClick={() => setLeaderboardSortBy('trees')}
+              >
+                🌳 Drzewka
+              </button>
+              <button 
+                className={`leaderboard-tab ${leaderboardSortBy === 'coins' ? 'active' : ''}`}
+                onClick={() => setLeaderboardSortBy('coins')}
+              >
+                🌱 Nasionka
+              </button>
+            </div>
+
+            <div className="leaderboard-list">
+              {(() => {
+                const sorted = [...leaderboardUsers].sort((a, b) => {
+                  if (leaderboardSortBy === 'trees') {
+                    return b.trees - a.trees;
+                  } else {
+                    return b.coins - a.coins;
+                  }
+                });
+
+                return sorted.map((user, index) => {
+                  const isCurrentUser = user.id === 'current';
+                  const isSpectating = spectatingUserId === user.id;
+                  
+                  return (
+                    <div 
+                      key={user.id} 
+                      className={`leaderboard-item ${isCurrentUser ? 'current-user' : ''} ${isSpectating ? 'spectating' : ''}`}
+                    >
+                      <div className="leaderboard-rank">
+                        {index + 1}
+                      </div>
+                      <div className="leaderboard-avatar">
+                        {user.avatar}
+                      </div>
+                      <div className="leaderboard-info">
+                        <div className="leaderboard-name">
+                          {user.name}
+                          {isCurrentUser && <span className="current-badge">Ty</span>}
+                        </div>
+                        <div className="leaderboard-stats">
+                          <span>🌳 {user.trees}</span>
+                          <span>🌱 {user.coins}</span>
+                        </div>
+                      </div>
+                      {!isCurrentUser && (
+                        <button 
+                          className="leaderboard-spectate-btn"
+                          onClick={() => {
+                            setSpectatingUserId(user.id);
+                            setLeaderboardOpen(false);
+                          }}
+                        >
+                          👁️ Obejrzyj
+                        </button>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Panel Konfiguracji */}
       <div className={`side-panel settings-panel ${settingsOpen ? 'open' : ''}`}>
         <div className="panel-content">
@@ -1141,87 +1453,222 @@ function App() {
             </div>
 
             <div className="settings-sections">
+              {/* Sekcja 1: Intro Flow */}
               <div className="settings-section">
-                <h3 className="settings-section-title">Powiadomienia</h3>
+                <h3 className="settings-section-title">1. Intro Flow</h3>
+                
                 <div className="settings-item">
                   <div className="settings-item-info">
-                    <span className="settings-item-label">Powiadomienia o sesjach</span>
-                    <span className="settings-item-description">Otrzymuj przypomnienia o rozpoczęciu sesji</span>
+                    <span className="settings-item-label">Muzyka do intro</span>
+                    <span className="settings-item-description">Wybierz muzykę odtwarzaną przed rozpoczęciem sesji</span>
+                  </div>
+                  <select 
+                    value={introMusic} 
+                    onChange={(e) => {
+                      setIntroMusic(e.target.value);
+                      localStorage.setItem('introMusic', e.target.value);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '2px solid #87AE73',
+                      background: '#FFFFE3',
+                      color: '#2d3e2d',
+                      fontSize: '12px',
+                      fontFamily: 'Manrope, sans-serif',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">Brak muzyki</option>
+                    {getItemsByCategory('music').map(item => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="settings-item">
+                  <div className="settings-item-info">
+                    <span className="settings-item-label">Ćwiczenia oddechowe</span>
+                    <span className="settings-item-description">Włącz ćwiczenia oddechowe przed sesją</span>
                   </div>
                   <label className="toggle-switch">
-                    <input type="checkbox" defaultChecked />
+                    <input 
+                      type="checkbox" 
+                      checked={breathingExercises.enabled}
+                      onChange={(e) => {
+                        const newValue = { ...breathingExercises, enabled: e.target.checked };
+                        setBreathingExercises(newValue);
+                        localStorage.setItem('breathingExercises', JSON.stringify(newValue));
+                      }}
+                    />
                     <span className="toggle-slider"></span>
                   </label>
                 </div>
+
+                {breathingExercises.enabled && (
+                  <div className="settings-item">
+                    <div className="settings-item-info">
+                      <span className="settings-item-label">Czas trwania ćwiczeń (sekundy)</span>
+                      <span className="settings-item-description">Długość ćwiczeń oddechowych</span>
+                    </div>
+                    <input 
+                      type="number" 
+                      min="30" 
+                      max="300" 
+                      step="10"
+                      value={breathingExercises.duration}
+                      onChange={(e) => {
+                        const newValue = { ...breathingExercises, duration: parseInt(e.target.value) };
+                        setBreathingExercises(newValue);
+                        localStorage.setItem('breathingExercises', JSON.stringify(newValue));
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '2px solid #87AE73',
+                        background: '#FFFFE3',
+                        color: '#2d3e2d',
+                        fontSize: '12px',
+                        fontFamily: 'Manrope, sans-serif',
+                        width: '100px'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Sekcja 2: Sesja */}
+              <div className="settings-section">
+                <h3 className="settings-section-title">2. Sesja</h3>
+                
                 <div className="settings-item">
                   <div className="settings-item-info">
-                    <span className="settings-item-label">Powiadomienia o wyzwaniach</span>
-                    <span className="settings-item-description">Informacje o postępach w wyzwaniach</span>
+                    <span className="settings-item-label">Domyślny czas trwania (minuty)</span>
+                    <span className="settings-item-description">Standardowy czas trwania sesji</span>
+                  </div>
+                  <input 
+                    type="number" 
+                    min="5" 
+                    max="120" 
+                    step="5"
+                    value={sessionConfig.defaultDuration}
+                    onChange={(e) => {
+                      const newValue = { ...sessionConfig, defaultDuration: parseInt(e.target.value) };
+                      setSessionConfig(newValue);
+                      localStorage.setItem('sessionConfig', JSON.stringify(newValue));
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '2px solid #87AE73',
+                      background: '#FFFFE3',
+                      color: '#2d3e2d',
+                      fontSize: '12px',
+                      fontFamily: 'Manrope, sans-serif',
+                      width: '100px'
+                    }}
+                  />
+                </div>
+
+                <div className="settings-item">
+                  <div className="settings-item-info">
+                    <span className="settings-item-label">Automatyczne rozpoczęcie</span>
+                    <span className="settings-item-description">Sesja rozpoczyna się automatycznie po intro</span>
                   </div>
                   <label className="toggle-switch">
-                    <input type="checkbox" defaultChecked />
+                    <input 
+                      type="checkbox" 
+                      checked={sessionConfig.autoStart}
+                      onChange={(e) => {
+                        const newValue = { ...sessionConfig, autoStart: e.target.checked };
+                        setSessionConfig(newValue);
+                        localStorage.setItem('sessionConfig', JSON.stringify(newValue));
+                      }}
+                    />
                     <span className="toggle-slider"></span>
                   </label>
                 </div>
               </div>
 
+              {/* Sekcja 3: Zablokowane strony */}
               <div className="settings-section">
-                <h3 className="settings-section-title">Wygląd</h3>
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <span className="settings-item-label">Tryb ciemny</span>
-                    <span className="settings-item-description">Przełącz na ciemny motyw</span>
+                <h3 className="settings-section-title">3. Zablokowane strony</h3>
+                
+                <div className="settings-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                  <div className="settings-item-info" style={{ width: '100%' }}>
+                    <span className="settings-item-label">Dodaj URL do zablokowania</span>
+                    <span className="settings-item-description">Wpisz adres strony, którą chcesz zablokować podczas sesji</span>
                   </div>
-                  <label className="toggle-switch">
-                    <input type="checkbox" />
-                    <span className="toggle-slider"></span>
-                  </label>
-                </div>
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <span className="settings-item-label">Animacje</span>
-                    <span className="settings-item-description">Włącz/wyłącz animacje interfejsu</span>
+                  <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                    <input 
+                      type="text" 
+                      placeholder="np. facebook.com"
+                      value={newUrl}
+                      onChange={(e) => setNewUrl(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && newUrl.trim()) {
+                          const updated = [...blockedUrls, newUrl.trim()];
+                          setBlockedUrls(updated);
+                          localStorage.setItem('blockedUrls', JSON.stringify(updated));
+                          setNewUrl('');
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '2px solid #87AE73',
+                        background: '#FFFFE3',
+                        color: '#2d3e2d',
+                        fontSize: '12px',
+                        fontFamily: 'Manrope, sans-serif'
+                      }}
+                    />
+                    <button 
+                      className="settings-action-btn"
+                      onClick={() => {
+                        if (newUrl.trim()) {
+                          const updated = [...blockedUrls, newUrl.trim()];
+                          setBlockedUrls(updated);
+                          localStorage.setItem('blockedUrls', JSON.stringify(updated));
+                          setNewUrl('');
+                        }
+                      }}
+                    >
+                      Dodaj
+                    </button>
                   </div>
-                  <label className="toggle-switch">
-                    <input type="checkbox" defaultChecked />
-                    <span className="toggle-slider"></span>
-                  </label>
                 </div>
-              </div>
 
-              <div className="settings-section">
-                <h3 className="settings-section-title">Dane</h3>
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <span className="settings-item-label">Eksport danych</span>
-                    <span className="settings-item-description">Pobierz kopię zapasową swoich danych</span>
+                {blockedUrls.length > 0 && (
+                  <div style={{ marginTop: '15px' }}>
+                    <div className="settings-item-info" style={{ marginBottom: '10px' }}>
+                      <span className="settings-item-label">Zablokowane URL:</span>
+                    </div>
+                    {blockedUrls.map((url, index) => (
+                      <div 
+                        key={index} 
+                        className="settings-item"
+                        style={{ padding: '10px 0' }}
+                      >
+                        <div className="settings-item-info">
+                          <span className="settings-item-label" style={{ fontSize: '13px' }}>{url}</span>
+                        </div>
+                        <button 
+                          className="settings-action-btn danger"
+                          onClick={() => {
+                            const updated = blockedUrls.filter((_, i) => i !== index);
+                            setBlockedUrls(updated);
+                            localStorage.setItem('blockedUrls', JSON.stringify(updated));
+                          }}
+                          style={{ padding: '6px 12px', fontSize: '11px' }}
+                        >
+                          Usuń
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  <button className="settings-action-btn">Eksportuj</button>
-                </div>
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <span className="settings-item-label">Wyczyść dane</span>
-                    <span className="settings-item-description">Usuń wszystkie zapisane dane</span>
-                  </div>
-                  <button className="settings-action-btn danger">Wyczyść</button>
-                </div>
-              </div>
-
-              <div className="settings-section">
-                <h3 className="settings-section-title">O aplikacji</h3>
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <span className="settings-item-label">Wersja</span>
-                    <span className="settings-item-description">1.0.0</span>
-                  </div>
-                </div>
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <span className="settings-item-label">Polityka prywatności</span>
-                    <span className="settings-item-description">Przeczytaj naszą politykę</span>
-                  </div>
-                  <button className="settings-action-btn">Otwórz</button>
-                </div>
+                )}
               </div>
             </div>
           </div>
