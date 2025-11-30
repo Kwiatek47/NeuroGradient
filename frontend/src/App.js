@@ -38,7 +38,6 @@ function App() {
   const atmosphereAudioRef = useRef(null); // referencja do elementu audio (atmosfera)
   const [sessionStartTime, setSessionStartTime] = useState(null); // czas rozpoczęcia sesji
   const [sessionDuration, setSessionDuration] = useState(0); // czas trwania sesji w sekundach
-  const [focusScore, setFocusScore] = useState(0); // Score z EEG (-1.0 do 1.0)
   const [eegConnected, setEegConnected] = useState(false); // Status połączenia z EEG
   const [sessionsHistory, setSessionsHistory] = useState(() => {
     // Ładowanie historii sesji z localStorage
@@ -435,39 +434,6 @@ function App() {
     }
   };
 
-  // Funkcja do pobierania danych z backendu (EEG)
-  useEffect(() => {
-    if (!isActive) {
-      setFocusScore(0);
-      setEegConnected(false);
-      return;
-    }
-
-    // Użyj zmiennej środowiskowej lub fallback do localhost
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-    
-    // Polling - pobieraj dane co 200ms (zgodnie z UPDATE_INTERVAL w skrypcie EEG)
-    const focusInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/focus-data`);
-        const data = await response.json();
-        
-        if (data.isActive && data.score !== undefined) {
-          setFocusScore(data.score);
-          setEegConnected(true);
-        } else {
-          setFocusScore(0);
-          setEegConnected(false);
-        }
-      } catch (error) {
-        console.error('Error fetching focus data:', error);
-        setFocusScore(0);
-        setEegConnected(false);
-      }
-    }, 200); // Polling co 200ms
-
-    return () => clearInterval(focusInterval);
-  }, [isActive]);
 
   const pauseActivity = () => {
     setIsPaused(true);
@@ -560,7 +526,6 @@ function App() {
     setSessionStartTime(null);
     setSessionDuration(0);
     setPausedAt(null);
-    setFocusScore(0); // Resetuj focus score
     setEegConnected(false);
   };
 
@@ -1077,7 +1042,7 @@ function App() {
       {/* Drzewo podczas sesji */}
       {isActive && !showIntro && (
         <GrowingTree 
-          inputP={focusScore} 
+          inputP={0} 
           onStop={stopActivity}
           showTimer={sessionConfig.showTimer}
           sessionDuration={sessionDuration}

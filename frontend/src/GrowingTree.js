@@ -3,13 +3,11 @@ import React, { useEffect, useRef, useState } from 'react';
 function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDuration = 0 }) {
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
-  const [treeMaturityDisplay, setTreeMaturityDisplay] = useState(0);
-  const [accumulatedFocusScore, setAccumulatedFocusScore] = useState(0);
+  const [inputPDisplay, setInputPDisplay] = useState(0);
+  const [eegConnected, setEegConnected] = useState(false);
   const stateRef = useRef({
     inputP: 0,
-    accumulatedFocusScore: 0, // Akumulowany focus score
     treeMaturity: 0,
-    focusLevel: 0,
     currentTreeSize: 0,
     currentBloomLevel: 0,
     time: 0,
@@ -17,6 +15,9 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
     branchBloomState: new Map(),
     lastInputP: 0 // Do śledzenia zmian
   });
+  
+  // API URL - można skonfigurować przez zmienną środowiskową
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -25,8 +26,8 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
     const ctx = canvas.getContext('2d');
     let width, height;
 
-    // --- KONFIGURACJA PRĘDKOŚCI ---
-    const CONSTANT_GROWTH = 0.002; // Stała wartość wzrostu przy każdym dodatnim inputP
+    // Zwiększona prędkość wzrostu - szybsze rośnięcie drzewa
+    const GROWTH_SPEED = 0.001; // ~10x szybsze niż oryginalne 0.000111
     const MAX_TREE_SIZE = 180;
     const MIN_TREE_SIZE = 80;
 
@@ -157,67 +158,80 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
       ctx.clearRect(0, 0, width, height);
       stateRef.current.time += 0.03;
 
-      // Aktualizuj inputP i akumuluj focus score
-      if (stateRef.current.lastInputP !== inputP) {
-        // Dodaj nową wartość do akumulowanego focus score
-        if (inputP > 0) {
-          stateRef.current.accumulatedFocusScore += inputP;
-          setAccumulatedFocusScore(stateRef.current.accumulatedFocusScore);
-          
-          // --- GŁÓWNA LOGIKA WZROSTU OPARTA NA INPUT P ---
-          // Tylko dodatnie wartości zwiększają drzewo o STAŁĄ wartość
-          stateRef.current.treeMaturity += CONSTANT_GROWTH;
-        }
-        // Ujemne wartości nie zmniejszają akumulowanego score ani drzewa
-        
-        console.log('[GrowingTree] inputP:', inputP, 'accumulated:', stateRef.current.accumulatedFocusScore.toFixed(3), 'treeMaturity:', stateRef.current.treeMaturity.toFixed(3));
-        stateRef.current.lastInputP = inputP;
+      // --- GŁÓWNA LOGIKA WZROSTU OPARTA NA INPUT P ---
+      // Drzewo rośnie tylko przy dodatnich wartościach, nie zmniejsza się
+      if (stateRef.current.inputP > 0) {
+        stateRef.current.treeMaturity += stateRef.current.inputP * GROWTH_SPEED;
       }
-      stateRef.current.inputP = inputP;
       
       if (stateRef.current.treeMaturity > 1.0) stateRef.current.treeMaturity = 1.0;
       if (stateRef.current.treeMaturity < 0.0) stateRef.current.treeMaturity = 0.0;
 
-      // Aktualizuj wyświetlaną wartość dojrzałości (co kilka klatek dla wydajności)
+      // Aktualizuj wyświetlaną wartość Input P (co kilka klatek dla wydajności)
       if (Math.floor(stateRef.current.time * 10) % 5 === 0) {
-        setTreeMaturityDisplay(stateRef.current.treeMaturity);
+        setInputPDisplay(stateRef.current.inputP);
       }
 
       // Mapowanie na wizualia
-      stateRef.current.focusLevel = stateRef.current.treeMaturity;
       let targetSize = MIN_TREE_SIZE + (stateRef.current.treeMaturity * (MAX_TREE_SIZE - MIN_TREE_SIZE));
-      // Zwiększono szybkość animacji rozmiaru z 0.1 na 0.5 dla szybkiej reakcji
-      stateRef.current.currentTreeSize += (targetSize - stateRef.current.currentTreeSize) * 0.5;
+      // Szybkość animacji rozmiaru (jak w kodzie HTML)
+      stateRef.current.currentTreeSize += (targetSize - stateRef.current.currentTreeSize) * 0.1;
 
       let targetBloom = 0;
       if (stateRef.current.treeMaturity > 0.8) {
         targetBloom = (stateRef.current.treeMaturity - 0.8) * 5;
       }
-      // Zwiększono szybkość animacji kwiatów z 0.05 na 0.3
-      stateRef.current.currentBloomLevel += (targetBloom - stateRef.current.currentBloomLevel) * 0.3;
+      stateRef.current.currentBloomLevel += (targetBloom - stateRef.current.currentBloomLevel) * 0.05;
 
       if (stateRef.current.currentTreeSize > 10) {
         drawTree(width / 2, height, stateRef.current.currentTreeSize, 0, 22, 'S');
       }
 
-      // Spadanie liści - tylko przy bardzo niskim skupieniu (ale nie zmniejszamy drzewa)
-      // Usunięto logikę spadania liści przy ujemnych wartościach, bo drzewo nie zmniejsza się
+      // Spadanie liści - rzadziej, bo proces jest wolniejszy
+      if (stateRef.current.inputP < -0.1 && stateRef.current.treeMaturity < 0.5) {
+        if (Math.random() > 0.95) spawnLeaf(); // Jeszcze rzadziej
+      }
 
       updateLeaves();
 
       animationFrameRef.current = requestAnimationFrame(animate);
     }
 
+    // --- POBIERANIE DANYCH Z API EEG ---
+    const fetchFocusData = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/focus-data`);
+        if (response.ok) {
+          const data = await response.json();
+          // Score z API jest w zakresie -1.0 do 1.0
+          stateRef.current.inputP = data.score || 0;
+          setEegConnected(data.isActive || false);
+        } else {
+          setEegConnected(false);
+        }
+      } catch (error) {
+        // Cichy błąd - nie spamuj konsoli
+        setEegConnected(false);
+      }
+    };
+
+    // Polling co 200ms (zgodnie z UPDATE_INTERVAL w main.py)
+    const focusDataInterval = setInterval(fetchFocusData, 200);
+    
+    // Pobierz dane od razu
+    fetchFocusData();
+
     // Start animation
     animate();
 
     return () => {
       window.removeEventListener('resize', resize);
+      clearInterval(focusDataInterval);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, []); // Usunięto [inputP] - animacja nie restartuje się przy każdej zmianie
+  }, [API_URL]);
 
   return (
     <div style={{ 
@@ -301,67 +315,34 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
         style={{ display: 'block' }}
       />
       
-      {/* Wyświetlanie aktualnej wartości outputu na środku ekranu */}
+      {/* Wyświetlanie Input P (powiększone) */}
       <div style={{
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: 'rgba(0, 0, 0, 0.7)',
-        padding: '20px 30px',
+        top: '20px',
+        left: '20px',
+        fontFamily: "'Segoe UI', sans-serif",
+        color: '#444',
+        background: 'rgba(255, 255, 255, 0.7)',
+        padding: '20px',
         borderRadius: '12px',
-        color: '#FFFFE3',
-        fontFamily: "'Manrope', sans-serif",
-        fontSize: '32px',
-        fontWeight: 600,
-        textAlign: 'center',
-        zIndex: 1002,
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-        border: '2px solid rgba(255, 255, 255, 0.2)',
-        minWidth: '200px'
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        width: '320px',
+        zIndex: 1002
       }}>
-        <div style={{
-          fontSize: '14px',
-          marginBottom: '12px',
-          opacity: 0.8,
-          textTransform: 'uppercase',
-          letterSpacing: '1px'
-        }}>
-          Focus Score
-        </div>
-        <div style={{
-          color: inputP > 0 ? '#4CAF50' : inputP < 0 ? '#F44336' : '#9E9E9E',
-          fontSize: '48px',
-          fontWeight: 700,
-          textShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
-          marginBottom: '12px'
-        }}>
-          {accumulatedFocusScore.toFixed(3)}
-        </div>
-        <div style={{
-          fontSize: '12px',
-          marginBottom: '12px',
-          opacity: 0.6
-        }}>
-          Aktualne: {inputP.toFixed(3)} {inputP > 0 ? '↑' : inputP < 0 ? '↓' : '—'}
-        </div>
-        <div style={{
-          fontSize: '14px',
-          marginTop: '12px',
-          paddingTop: '12px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-          opacity: 0.8
-        }}>
-          Stan Drzewa
-        </div>
-        <div style={{
-          fontSize: '24px',
-          fontWeight: 600,
-          color: '#87CEEB',
-          marginTop: '4px'
-        }}>
-          {(treeMaturityDisplay * 100).toFixed(1)}%
-        </div>
+        <h2 style={{ margin: '0 0 10px 0', fontSize: '24px' }}>Growing Mind Tree</h2>
+        <p style={{ margin: '5px 0', fontSize: '16px' }}><strong>Tryb Focus (EEG)</strong></p>
+        <p style={{ margin: '5px 0', fontSize: '14px', opacity: 0.8 }}>
+          Status EEG: <span style={{ color: eegConnected ? '#4CAF50' : '#F44336', fontWeight: 600 }}>
+            {eegConnected ? '✓ Połączono' : '✗ Brak połączenia'}
+          </span>
+        </p>
+        <hr style={{ margin: '15px 0', border: 'none', borderTop: '1px solid rgba(0,0,0,0.1)' }} />
+        <p style={{ margin: '10px 0', fontSize: '18px' }}>
+          Focus Score: <span style={{ fontWeight: 600, color: inputPDisplay > 0 ? 'green' : inputPDisplay < 0 ? 'brown' : 'gray' }}>{inputPDisplay.toFixed(3)}</span>
+        </p>
+        <p style={{ margin: '5px 0', fontSize: '14px', opacity: 0.7 }}>
+          (Zakres: -1.0 do 1.0)
+        </p>
       </div>
     </div>
   );
