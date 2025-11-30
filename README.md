@@ -1,4 +1,4 @@
-# 🌳 NeuroGradient
+# 🌳 MindGrow
 <img width="546" height="419" alt="Main-Site" src="https://github.com/user-attachments/assets/1f51b06a-54fa-41da-bb27-9bf2343a471d" />
 
 **NeuroGradient** is an innovative focus and time management application that uses neurofeedback from EEG devices to visualize concentration levels in real-time. The app combines proven flow state induction techniques with gamification, where your focus grows as a visual tree.
@@ -569,7 +569,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Filip Pawlicki [GitHub](https://github.com/filippawlicki)
 - Mateusz Dobry [GitHub](https://github.com/MateuszDobry)
 - Jakub Wilk [GitHub](https://github.com/PyroX2)
-
+"It's been a loooooong way for us"
 ---
 
-**NeuroGradient** - Grow with your focus 🌳✨
+**MindGrow** - Grow with your focus 🌳✨
