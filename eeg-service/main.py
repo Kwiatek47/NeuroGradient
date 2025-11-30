@@ -30,6 +30,21 @@ WINDOW_SECONDS = 4      # Dłuższe okno = stabilniejszy odczyt widma
 UPDATE_INTERVAL = 0.2   # Częstsze aktualizacje dla płynności
 BUFFER_HISTORY = 60     # Ile sekund historii pamiętać do autokalibracji (np. 60s)
 
+def check_backend_connection():
+    """Sprawdza czy backend jest dostępny przed rozpoczęciem"""
+    try:
+        health_url = API_URL.replace('/api/focus-data', '/api/health')
+        response = requests.get(health_url, timeout=3.0)
+        if response.status_code == 200:
+            print(f"✓ Backend connected at {API_URL.split('/api')[0]}")
+            return True
+    except Exception as e:
+        print(f"✗ Backend not available at {API_URL.split('/api')[0]}")
+        print(f"  Error: {str(e)[:100]}")
+        print(f"  Please start backend: docker-compose up backend")
+        return False
+    return False
+
 class AdvancedFocusDetector:
     def __init__(self, window_seconds, sfreq):
         self.sfreq = sfreq
@@ -134,7 +149,9 @@ class AdvancedFocusDetector:
 def send_to_server(score):
     payload = {"score": score, "timestamp": time.time()}
     try:
-        requests.post(API_URL, json=payload, timeout=0.2)
+        # Zwiększ timeout z 0.2 na 2.0 sekundy
+        response = requests.post(API_URL, json=payload, timeout=2.0)
+        response.raise_for_status()  # Sprawdź status odpowiedzi
         
         # Wizualizacja w konsoli
         bar_len = 20
@@ -144,10 +161,26 @@ def send_to_server(score):
         bar = "█" * pos + "░" * (bar_len - pos)
         print(f"FOCUS: {score:.2f} |{bar}|")
         
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        # Cichy błąd - nie spamuj konsoli przy każdym błędzie
+        if not hasattr(send_to_server, '_connection_error_shown'):
+            print(f"⚠️  Backend not available. Data processing continues...")
+            print(f"   Start backend: docker-compose up backend")
+            send_to_server._connection_error_shown = True
     except Exception as e:
-        print(f"Error sending to server: {e}")
+        # Inne błędy - wyświetl tylko raz
+        if not hasattr(send_to_server, '_error_shown'):
+            print(f"Error sending to server: {e}")
+            send_to_server._error_shown = True
 
 def main():
+    # Sprawdź połączenie z backendem
+    backend_available = check_backend_connection()
+    if not backend_available:
+        print("\n⚠️  Continuing without backend connection...")
+        print("   Data will be processed but not sent to server.\n")
+        time.sleep(2)  # Daj czas na przeczytanie komunikatu
+    
     processor = AdvancedFocusDetector(WINDOW_SECONDS, SFREQ)
     eeg = acquisition.EEG()
     
