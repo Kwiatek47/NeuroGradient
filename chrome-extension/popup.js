@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateStatus() {
   chrome.runtime.sendMessage({ action: 'getStatus' }, (response) => {
     if (chrome.runtime.lastError) {
-      document.getElementById('status').textContent = 'Błąd połączenia';
+      document.getElementById('status').textContent = 'Connection Error';
       document.getElementById('status').className = 'status inactive';
       return;
     }
@@ -19,10 +19,10 @@ function updateStatus() {
     const listEl = document.getElementById('blockedList');
     
     if (response.isSessionActive) {
-      statusEl.textContent = 'Sesja aktywna';
+      statusEl.textContent = 'Session Active';
       statusEl.className = 'status active';
     } else {
-      statusEl.textContent = 'Sesja nieaktywna';
+      statusEl.textContent = 'Session Inactive';
       statusEl.className = 'status inactive';
     }
     
@@ -31,7 +31,7 @@ function updateStatus() {
         `<div class="blocked-item">${url}</div>`
       ).join('');
     } else {
-      listEl.innerHTML = '<div class="empty">Brak zablokowanych stron</div>';
+      listEl.innerHTML = '<div class="empty">No blocked websites</div>';
     }
   });
 }

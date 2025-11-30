@@ -99,20 +99,20 @@ function IntroScreen({ onComplete, introMusic, breathingEnabled, breathingDurati
   
   const getPhaseText = () => {
     switch(phase) {
-      case 'inhale': return 'Wdech';
-      case 'hold1': return 'Wstrzymaj';
-      case 'exhale': return 'Wydech';
-      case 'hold2': return 'Wstrzymaj';
+      case 'inhale': return 'Inhale';
+      case 'hold1': return 'Hold';
+      case 'exhale': return 'Exhale';
+      case 'hold2': return 'Hold';
       default: return '';
     }
   };
   
   const getPhaseInstruction = () => {
     switch(phase) {
-      case 'inhale': return 'Powoli wdychaj powietrze przez nos';
-      case 'hold1': return 'Wstrzymaj oddech';
-      case 'exhale': return 'Powoli wydychaj powietrze przez usta';
-      case 'hold2': return 'Wstrzymaj oddech';
+      case 'inhale': return 'Slowly inhale through your nose';
+      case 'hold1': return 'Hold your breath';
+      case 'exhale': return 'Slowly exhale through your mouth';
+      case 'hold2': return 'Hold your breath';
       default: return '';
     }
   };
@@ -186,7 +186,7 @@ function IntroScreen({ onComplete, introMusic, breathingEnabled, breathingDurati
           fontWeight: 700,
           color: '#87AE73'
         }}>
-          {isLowFocusReturn ? 'Zrób sobie chwilę przerwy' : 'Przygotuj się do sesji'}
+          {isLowFocusReturn ? 'Take a Break' : 'Prepare for Session'}
         </h1>
         
         {breathingEnabled && (
@@ -260,7 +260,7 @@ function IntroScreen({ onComplete, introMusic, breathingEnabled, breathingDurati
                   color: 'rgba(45, 62, 45, 0.7)',
                   marginTop: '10px'
                 }}>
-                  Cykl {cycleCount}
+                  Cycle {cycleCount}
                 </div>
               )}
             </div>
@@ -281,7 +281,7 @@ function IntroScreen({ onComplete, introMusic, breathingEnabled, breathingDurati
           fontSize: '14px',
           color: 'rgba(45, 62, 45, 0.7)'
         }}>
-          {breathingEnabled ? 'Ćwicz oddech i przygotuj się' : 'Przygotuj się do rozpoczęcia'}
+          {breathingEnabled ? 'Practice breathing and prepare' : 'Prepare to start'}
         </div>
       </div>
       

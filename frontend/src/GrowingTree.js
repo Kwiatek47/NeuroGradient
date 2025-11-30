@@ -327,7 +327,7 @@ function GrowingTree({ inputP = 0, onStop = null, showTimer = true, sessionDurat
               e.target.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.2)';
             }}
           >
-            <span>Zakończ sesję</span>
+            <span>End Session</span>
           </button>
           
           {showTimer && (

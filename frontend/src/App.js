@@ -119,7 +119,7 @@ function FocusChart({ history }) {
     ctx.fillStyle = '#2d3e2d';
     ctx.font = '11px Manrope, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Czas sesji', width / 2, height - 5);
+    ctx.fillText('Session Time', width / 2, height - 5);
     
     ctx.save();
     ctx.translate(10, height / 2);
@@ -392,21 +392,21 @@ function App() {
 
   // Definicja przedmiotów sklepu - użyj useMemo aby uniknąć problemów z useEffect
   const shopItems = useMemo(() => [
-    // Muzyka do skupienia
-    { id: 'music1', category: 'music', name: 'Muzyka klasyczna', price: 80, icon: '🎵', description: 'Spokojna muzyka klasyczna dla lepszego skupienia', audioPath: '/music/muzyka-klasyczna.mp3' },
-    { id: 'music2', category: 'music', name: 'Dźwięki natury', price: 100, icon: '🌿', description: 'Odgłosy lasu i natury dla głębokiego flow', audioPath: '/music/dzwieki-natury.mp3' },
-    { id: 'music3', category: 'music', name: 'Binaural beats', price: 150, icon: '🧠', description: 'Fale mózgowe dla maksymalnej koncentracji', audioPath: '/music/binaural-beats.mp3' },
-    { id: 'music4', category: 'music', name: 'Ambient space', price: 120, icon: '🌌', description: 'Kosmiczne dźwięki dla kreatywnego flow', audioPath: '/music/ambient-space.mp3' },
+    // Focus Music
+    { id: 'music1', category: 'music', name: 'Classical Music', price: 80, icon: '🎵', description: 'Calm classical music for better focus', audioPath: '/music/muzyka-klasyczna.mp3' },
+    { id: 'music2', category: 'music', name: 'Nature Sounds', price: 100, icon: '🌿', description: 'Forest and nature sounds for deep flow', audioPath: '/music/dzwieki-natury.mp3' },
+    { id: 'music3', category: 'music', name: 'Binaural Beats', price: 150, icon: '🧠', description: 'Brain waves for maximum concentration', audioPath: '/music/binaural-beats.mp3' },
+    { id: 'music4', category: 'music', name: 'Ambient Space', price: 120, icon: '🌌', description: 'Cosmic sounds for creative flow', audioPath: '/music/ambient-space.mp3' },
     
-    // Atmosfera
-    { id: 'atmo1', category: 'atmosphere', name: 'Światło świec', price: 60, icon: '🕯️', description: 'Ciepłe światło świec dla relaksu', effect: 'relax+10%' },
-    { id: 'atmo2', category: 'atmosphere', name: 'Deszcz za oknem', price: 70, icon: '🌧️', description: 'Relaksujący dźwięk deszczu', effect: 'focus+12%' },
-    { id: 'atmo3', category: 'atmosphere', name: 'Kominek', price: 90, icon: '🔥', description: 'Przytulna atmosfera kominka', effect: 'comfort+15%', audioPath: '/music/fireplace_sound.wav' },
+    // Atmosphere
+    { id: 'atmo1', category: 'atmosphere', name: 'Candlelight', price: 60, icon: '🕯️', description: 'Warm candlelight for relaxation', effect: 'relax+10%' },
+    { id: 'atmo2', category: 'atmosphere', name: 'Rain Outside', price: 70, icon: '🌧️', description: 'Relaxing rain sound', effect: 'focus+12%' },
+    { id: 'atmo3', category: 'atmosphere', name: 'Fireplace', price: 90, icon: '🔥', description: 'Cozy fireplace atmosphere', effect: 'comfort+15%', audioPath: '/music/fireplace_sound.wav' },
     
-    // Drzewa do obsadzenia na mapie
-    { id: 'tree1', category: 'tree', name: 'Zwykłe drzewo', price: 50, icon: '🌳', description: 'Klasyczne drzewo do obsadzenia', effect: 'dekoracja', treeType: 'normal' },
-    { id: 'tree2', category: 'tree', name: 'Choinka', price: 100, icon: '🎄', description: 'Świąteczna choinka z ozdobami', effect: 'dekoracja', treeType: 'christmas' },
-    { id: 'tree3', category: 'tree', name: 'Kwitnąca wiśnia', price: 120, icon: '🌸', description: 'Delikatne kwiaty wiśni', effect: 'dekoracja', treeType: 'cherry' }
+    // Trees to plant on the map
+    { id: 'tree1', category: 'tree', name: 'Normal Tree', price: 50, icon: '🌳', description: 'Classic tree to plant', effect: 'decoration', treeType: 'normal' },
+    { id: 'tree2', category: 'tree', name: 'Christmas Tree', price: 100, icon: '🎄', description: 'Christmas tree with decorations', effect: 'decoration', treeType: 'christmas' },
+    { id: 'tree3', category: 'tree', name: 'Cherry Blossom', price: 120, icon: '🌸', description: 'Delicate cherry blossoms', effect: 'decoration', treeType: 'cherry' }
   ], []);
 
   const buyItem = (item) => {
@@ -705,11 +705,11 @@ function App() {
         { id: '50_sessions', name: '50 sesji', icon: '🌟', condition: () => totalSessions >= 50, reward: 200 },
         { id: '100_sessions', name: '100 sesji', icon: '💫', condition: () => totalSessions >= 100, reward: 500 },
         { id: 'hour_session', name: 'Godzina skupienia', icon: '⏰', condition: () => allSessions.some(s => s.duration >= 3600), reward: 100 },
-        { id: '3_days_streak', name: '3 dni z rzędu', icon: '🔥', condition: () => maxConsecutive >= 3, reward: 75 },
-        { id: '7_days_streak', name: '7 dni z rzędu', icon: '🔥🔥', condition: () => maxConsecutive >= 7, reward: 200 },
-        { id: '30_days_streak', name: '30 dni z rzędu', icon: '🔥🔥🔥', condition: () => maxConsecutive >= 30, reward: 1000 },
-        { id: 'total_10h', name: '10 godzin nauki', icon: '📚', condition: () => totalTime >= 36000, reward: 150 },
-        { id: 'total_50h', name: '50 godzin nauki', icon: '📖', condition: () => totalTime >= 180000, reward: 500 },
+                    { id: '3_days_streak', name: '3 Days in a Row', icon: '🔥', condition: () => maxConsecutive >= 3, reward: 75 },
+                    { id: '7_days_streak', name: '7 Days in a Row', icon: '🔥🔥', condition: () => maxConsecutive >= 7, reward: 200 },
+                    { id: '30_days_streak', name: '30 Days in a Row', icon: '🔥🔥🔥', condition: () => maxConsecutive >= 30, reward: 1000 },
+                    { id: 'total_10h', name: '10 Hours of Study', icon: '📚', condition: () => totalTime >= 36000, reward: 150 },
+                    { id: 'total_50h', name: '50 Hours of Study', icon: '📖', condition: () => totalTime >= 180000, reward: 500 },
       ];
       
       achievementDefs.forEach(achievement => {
@@ -871,8 +871,8 @@ function App() {
         duration: sessionDuration,
         durationFormatted: formatTime(sessionDuration),
         date: dateKey,
-        startTime: new Date(sessionStartTime).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
-        endTime: new Date(Date.now()).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+        startTime: new Date(sessionStartTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        endTime: new Date(Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         coinsEarned: coinsEarned,
         // Statystyki dnia
         totalSessions: dayStats.totalSessions,
@@ -918,8 +918,8 @@ function App() {
     if (!focusStats || focusStats.totalSamples === 0) {
       return {
         level: 'brak_danych',
-        label: 'Brak danych EEG',
-        description: 'Nie udało się zebrać danych o skupieniu podczas sesji.',
+        label: 'No EEG Data',
+        description: 'Failed to collect focus data during session.',
         score: 0,
         color: '#9E9E9E',
         icon: '❓'
@@ -940,33 +940,33 @@ function App() {
     let level, label, description, color, icon;
     
     if (overallScore >= 80) {
-      level = 'doskonałe';
-      label = 'Doskonałe skupienie!';
-      description = 'Utrzymywałeś bardzo wysoki poziom koncentracji przez większość sesji.';
+      level = 'excellent';
+      label = 'Excellent Focus!';
+      description = 'You maintained a very high level of concentration throughout most of the session.';
       color = '#4CAF50';
       icon = '🌟';
     } else if (overallScore >= 65) {
-      level = 'bardzo_dobre';
-      label = 'Bardzo dobre skupienie';
-      description = 'Twój poziom koncentracji był wysoki i stabilny.';
+      level = 'very_good';
+      label = 'Very Good Focus';
+      description = 'Your concentration level was high and stable.';
       color = '#8BC34A';
       icon = '✨';
     } else if (overallScore >= 50) {
-      level = 'dobre';
-      label = 'Dobre skupienie';
-      description = 'Utrzymywałeś przyzwoity poziom koncentracji.';
+      level = 'good';
+      label = 'Good Focus';
+      description = 'You maintained a decent level of concentration.';
       color = '#FFC107';
       icon = '👍';
     } else if (overallScore >= 35) {
-      level = 'umiarkowane';
-      label = 'Umiarkowane skupienie';
-      description = 'Poziom koncentracji był zmienny. Spróbuj ćwiczeń oddechowych przed następną sesją.';
+      level = 'moderate';
+      label = 'Moderate Focus';
+      description = 'Concentration level was variable. Try breathing exercises before the next session.';
       color = '#FF9800';
       icon = '📊';
     } else {
-      level = 'niski';
-      label = 'Niskie skupienie';
-      description = 'Poziom koncentracji był niski. Zalecamy ćwiczenia oddechowe i przerwę.';
+      level = 'low';
+      label = 'Low Focus';
+      description = 'Concentration level was low. We recommend breathing exercises and a break.';
       color = '#F44336';
       icon = '💭';
     }
@@ -1073,9 +1073,9 @@ function App() {
     return days;
   };
 
-  const monthNames = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 
-                      'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
-  const dayNames = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   
   const currentYear = new Date().getFullYear();
   const today = new Date();
@@ -1096,7 +1096,7 @@ function App() {
           setCalendarOpen(false);
           setChallengesOpen(false);
         }}
-        title="Profil"
+        title="Profile"
       >
         <div className="profile-avatar-small">
           <span>👤</span>
@@ -1132,13 +1132,13 @@ function App() {
                 </span>
                 <div className="effect-info">
                   <div className="effect-name">
-                    {shopItems.find(item => item.id === activeMusic)?.name || 'Muzyka'}
+                    {shopItems.find(item => item.id === activeMusic)?.name || 'Music'}
                   </div>
                 </div>
                 <button 
                   className="effect-remove-btn"
                   onClick={() => deactivateItem(activeMusic, 'music')}
-                  title="Zatrzymaj"
+                  title="Stop"
                 >
                   ×
                 </button>
@@ -1161,7 +1161,7 @@ function App() {
           }}
         >
           <span className="icon-shop"></span>
-          <span>Sklep</span>
+          <span>Shop</span>
         </button>
         <button 
           className={`nav-item ${calendarOpen ? 'active' : ''}`}
@@ -1174,7 +1174,7 @@ function App() {
           }}
         >
           <span className="icon-calendar"></span>
-          <span>Kalendarz</span>
+          <span>Calendar</span>
         </button>
         <button 
           className={`nav-item ${challengesOpen ? 'active' : ''}`}
@@ -1188,7 +1188,7 @@ function App() {
           }}
         >
           <span className="icon-challenges"></span>
-          <span>Wyzwania</span>
+          <span>Challenges</span>
         </button>
         <button 
           className={`nav-item ${leaderboardOpen ? 'active' : ''}`}
@@ -1216,14 +1216,14 @@ function App() {
           }}
         >
           <span className="icon-settings"></span>
-          <span>Konfiguracja</span>
+          <span>Settings</span>
         </button>
       </div>
 
       {/* Sklep w menu bocznym */}
       <div className={`side-menu ${menuOpen ? 'open' : ''}`}>
         <div className="menu-content">
-          <h2>Sklep</h2>
+          <h2>Shop</h2>
           <div className="shop-coins-display">
             <span className="shop-coins-icon">🌱</span>
             <span className="shop-coins-amount">{coins}</span>
@@ -1234,25 +1234,25 @@ function App() {
               className={`shop-tab ${activeShopTab === 'music' ? 'active' : ''}`} 
               onClick={() => setActiveShopTab('music')}
             >
-              Muzyka
+              Music
             </button>
             <button 
               className={`shop-tab ${activeShopTab === 'atmosphere' ? 'active' : ''}`} 
               onClick={() => setActiveShopTab('atmosphere')}
             >
-              Atmosfera
+              Atmosphere
             </button>
             <button 
               className={`shop-tab ${activeShopTab === 'trees' ? 'active' : ''}`} 
               onClick={() => setActiveShopTab('trees')}
             >
-              Drzewa
+              Trees
             </button>
           </div>
 
           {activeShopTab === 'music' && (
             <div className="shop-tab-content">
-              <h3 className="shop-category-title">Muzyka do skupienia</h3>
+              <h3 className="shop-category-title">Focus Music</h3>
               <div className="shop-items-grid">
                 {getItemsByCategory('music').map(item => {
                   const isOwned = ownedItems.find(owned => owned.id === item.id);
@@ -1272,7 +1272,7 @@ function App() {
                           className={`shop-buy-btn ${isActive ? 'active-btn' : 'use-btn'}`}
                           onClick={() => isActive ? deactivateItem(item.id, 'music') : activateItem(item)}
                         >
-                          {isActive ? '✓ Aktywna' : 'Użyj'}
+                          {isActive ? '✓ Active' : 'Use'}
                         </button>
                       ) : (
                         <button 
@@ -1280,7 +1280,7 @@ function App() {
                           onClick={() => buyItem(item)}
                           disabled={coins < item.price}
                         >
-                          {coins >= item.price ? 'Kup' : 'Za mało nasion'}
+                          {coins >= item.price ? 'Buy' : 'Not enough seeds'}
                         </button>
                       )}
                     </div>
@@ -1311,7 +1311,7 @@ function App() {
                           className={`shop-buy-btn ${isActive ? 'active-btn' : 'use-btn'}`}
                           onClick={() => isActive ? deactivateItem(item.id, item.category) : activateItem(item)}
                         >
-                          {isActive ? '✓ Aktywny' : 'Użyj'}
+                          {isActive ? '✓ Active' : 'Use'}
                         </button>
                       ) : (
                         <button 
@@ -1319,7 +1319,7 @@ function App() {
                           onClick={() => buyItem(item)}
                           disabled={coins < item.price}
                         >
-                          {coins >= item.price ? 'Kup' : 'Za mało nasion'}
+                          {coins >= item.price ? 'Buy' : 'Not enough seeds'}
                         </button>
                       )}
                     </div>
@@ -1331,7 +1331,7 @@ function App() {
 
           {activeShopTab === 'trees' && (
             <div className="shop-tab-content">
-              <h3 className="shop-category-title">Drzewa do obsadzenia</h3>
+              <h3 className="shop-category-title">Trees to Plant</h3>
               {selectedTreeType && (
                 <div className="tree-selection-hint" style={{ 
                   padding: '10px', 
@@ -1341,7 +1341,7 @@ function App() {
                   color: 'white',
                   textAlign: 'center'
                 }}>
-                  Wybrano drzewo! Kliknij na mapie, aby je obsadzić.
+                  Tree selected! Click on the map to plant it.
                   <button 
                     onClick={() => setSelectedTreeType(null)}
                     style={{ 
@@ -1354,7 +1354,7 @@ function App() {
                       cursor: 'pointer'
                     }}
                   >
-                    Anuluj
+                    Cancel
                   </button>
                 </div>
               )}
@@ -1376,7 +1376,7 @@ function App() {
                         onClick={() => buyItem(item)}
                         disabled={coins < item.price}
                       >
-                        {isSelected ? '✓ Wybrane' : coins >= item.price ? 'Kup i obsadź' : 'Za mało nasion'}
+                        {isSelected ? '✓ Selected' : coins >= item.price ? 'Buy & Plant' : 'Not enough seeds'}
                       </button>
                     </div>
                   );
@@ -1452,9 +1452,9 @@ function App() {
                     e.stopPropagation();
                     setSpectatingUserId(null);
                   }}
-                  title="Powrót do mojego lasu"
+                  title="Back to my forest"
                 >
-                  🌳 Mój las
+                  🌳 My Forest
                 </button>
                 <div className="spectating-user-info">
                   {(() => {
@@ -1512,7 +1512,7 @@ function App() {
                 onClick={startActivity}
               >
                 <span className="activity-icon">🌱</span>
-                <span className="activity-label">Rozpocznij</span>
+                <span className="activity-label">Start</span>
               </button>
             </>
           ) : (
@@ -1520,15 +1520,15 @@ function App() {
               <div className="activity-slogan">Let your mind grow</div>
               <div className="activity-controls">
                 {isPaused ? (
-                  <button className="control-btn-icon resume" onClick={resumeActivity} title="Wznów">
+                  <button className="control-btn-icon resume" onClick={resumeActivity} title="Resume">
                     <div className="icon-play-animated"></div>
                   </button>
                 ) : (
-                  <button className="control-btn-icon pause" onClick={pauseActivity} title="Wstrzymaj">
+                  <button className="control-btn-icon pause" onClick={pauseActivity} title="Pause">
                     <div className="icon-pause-animated"></div>
                   </button>
                 )}
-                <button className="control-btn-icon stop" onClick={stopActivity} title="Zakończ">
+                <button className="control-btn-icon stop" onClick={stopActivity} title="Stop">
                   <div className="icon-stop-animated"></div>
                 </button>
               </div>
@@ -1641,7 +1641,7 @@ function App() {
             </div>
 
             <div className="profile-stats">
-              <h3>Statystyki</h3>
+              <h3>Statistics</h3>
               <div className="profile-stats-grid">
                 {(() => {
                   const allSessions = Object.values(sessionsHistory).flat();
@@ -1676,22 +1676,22 @@ function App() {
                       <div className="profile-stat-card">
                         <span className="stat-icon">📊</span>
                         <span className="stat-number">{totalSessions}</span>
-                        <span className="stat-label">Ukończone sesje</span>
+                        <span className="stat-label">Completed sessions</span>
                       </div>
                       <div className="profile-stat-card">
                         <span className="stat-icon">⏱️</span>
                         <span className="stat-number">{totalHours}h {totalMinutes}min</span>
-                        <span className="stat-label">Czas nauki</span>
+                        <span className="stat-label">Study time</span>
                       </div>
                       <div className="profile-stat-card">
                         <span className="stat-icon">🔥</span>
                         <span className="stat-number">{maxConsecutive}</span>
-                        <span className="stat-label">Dni z rzędu</span>
+                        <span className="stat-label">Days in a row</span>
                       </div>
                       <div className="profile-stat-card">
                         <span className="stat-icon">⭐</span>
                         <span className="stat-number">{unlockedAchievements}</span>
-                        <span className="stat-label">Osiągnięcia</span>
+                        <span className="stat-label">Achievements</span>
                       </div>
                     </>
                   );
@@ -1700,7 +1700,7 @@ function App() {
             </div>
 
             <div className="profile-achievements">
-              <h3>Osiągnięcia</h3>
+              <h3>Achievements</h3>
               <div className="achievements-grid">
                 {(() => {
                   const allSessions = Object.values(sessionsHistory).flat();
@@ -1727,16 +1727,16 @@ function App() {
                   }
                   
                   const achievementDefs = [
-                    { id: 'first_session', name: 'Pierwsza sesja', icon: '🌱', condition: () => totalSessions >= 1, reward: 10 },
-                    { id: '10_sessions', name: '10 sesji', icon: '⭐', condition: () => totalSessions >= 10, reward: 50 },
-                    { id: '50_sessions', name: '50 sesji', icon: '🌟', condition: () => totalSessions >= 50, reward: 200 },
-                    { id: '100_sessions', name: '100 sesji', icon: '💫', condition: () => totalSessions >= 100, reward: 500 },
-                    { id: 'hour_session', name: 'Godzina skupienia', icon: '⏰', condition: () => allSessions.some(s => s.duration >= 3600), reward: 100 },
-                    { id: '3_days_streak', name: '3 dni z rzędu', icon: '🔥', condition: () => maxConsecutive >= 3, reward: 75 },
-                    { id: '7_days_streak', name: '7 dni z rzędu', icon: '🔥🔥', condition: () => maxConsecutive >= 7, reward: 200 },
-                    { id: '30_days_streak', name: '30 dni z rzędu', icon: '🔥🔥🔥', condition: () => maxConsecutive >= 30, reward: 1000 },
-                    { id: 'total_10h', name: '10 godzin nauki', icon: '📚', condition: () => totalTime >= 36000, reward: 150 },
-                    { id: 'total_50h', name: '50 godzin nauki', icon: '📖', condition: () => totalTime >= 180000, reward: 500 },
+                    { id: 'first_session', name: 'First Session', icon: '🌱', condition: () => totalSessions >= 1, reward: 10 },
+                    { id: '10_sessions', name: '10 Sessions', icon: '⭐', condition: () => totalSessions >= 10, reward: 50 },
+                    { id: '50_sessions', name: '50 Sessions', icon: '🌟', condition: () => totalSessions >= 50, reward: 200 },
+                    { id: '100_sessions', name: '100 Sessions', icon: '💫', condition: () => totalSessions >= 100, reward: 500 },
+                    { id: 'hour_session', name: 'Hour of Focus', icon: '⏰', condition: () => allSessions.some(s => s.duration >= 3600), reward: 100 },
+                    { id: '3_days_streak', name: '3 Days in a Row', icon: '🔥', condition: () => maxConsecutive >= 3, reward: 75 },
+                    { id: '7_days_streak', name: '7 Days in a Row', icon: '🔥🔥', condition: () => maxConsecutive >= 7, reward: 200 },
+                    { id: '30_days_streak', name: '30 Days in a Row', icon: '🔥🔥🔥', condition: () => maxConsecutive >= 30, reward: 1000 },
+                    { id: 'total_10h', name: '10 Hours of Study', icon: '📚', condition: () => totalTime >= 36000, reward: 150 },
+                    { id: 'total_50h', name: '50 Hours of Study', icon: '📖', condition: () => totalTime >= 180000, reward: 500 },
                   ];
                   
                   return achievementDefs.map(achievement => {
@@ -1759,21 +1759,21 @@ function App() {
             </div>
 
             <div className="profile-settings">
-              <h3>Ustawienia konta</h3>
+              <h3>Account Settings</h3>
               <div className="profile-setting-item">
-                <span>Powiadomienia</span>
+                <span>Notifications</span>
                 <label className="toggle-switch">
                   <input type="checkbox" defaultChecked />
                   <span className="toggle-slider"></span>
                 </label>
               </div>
               <div className="profile-setting-item">
-                <span>Eksport danych</span>
-                <button className="profile-action-btn">Eksportuj</button>
+                <span>Export data</span>
+                <button className="profile-action-btn">Export</button>
               </div>
               <div className="profile-setting-item">
-                <span>Wyloguj się</span>
-                <button className="profile-action-btn logout">Wyloguj</button>
+                <span>Log out</span>
+                <button className="profile-action-btn logout">Logout</button>
               </div>
             </div>
           </div>
@@ -1786,8 +1786,8 @@ function App() {
           <button className="panel-close" onClick={() => setChallengesOpen(false)}>×</button>
           <div className="challenges-content">
             <div className="challenges-header">
-              <h2>Wyzwania</h2>
-              <p className="challenges-subtitle">Ukończ wyzwania i zdobądź nagrody!</p>
+              <h2>Challenges</h2>
+              <p className="challenges-subtitle">Complete challenges and earn rewards!</p>
             </div>
 
             <div className="challenges-list">
@@ -1817,8 +1817,8 @@ function App() {
                 const challenges = [
                   {
                     id: 'habit_builder',
-                    name: 'Budowniczy Nawyków',
-                    description: 'Ukończ 7 sesji w tygodniu',
+                    name: 'Habit Builder',
+                    description: 'Complete 7 sessions in a week',
                     progress: Math.min(weekSessions, 7),
                     target: 7,
                     reward: 100,
@@ -1827,8 +1827,8 @@ function App() {
                   },
                   {
                     id: 'night_owl',
-                    name: 'Nocny Marek',
-                    description: 'Ukończ 1 sesję po 20:00',
+                    name: 'Night Owl',
+                    description: 'Complete 1 session after 8 PM',
                     progress: Math.min(nightSessions, 1),
                     target: 1,
                     reward: 50,
@@ -1837,8 +1837,8 @@ function App() {
                   },
                   {
                     id: 'absolute_focus',
-                    name: 'Skupienie Absolutne',
-                    description: 'Ukończ sesję trwającą co najmniej 45 minut',
+                    name: 'Absolute Focus',
+                    description: 'Complete a session lasting at least 45 minutes',
                     progress: Math.min(longSessions, 1),
                     target: 1,
                     reward: 75,
@@ -1903,11 +1903,11 @@ function App() {
                                 fontWeight: 600
                               }}
                             >
-                              🎁 Odbierz nagrodę
+                              🎁 Claim Reward
                             </button>
                           ) : (
                             <div className="challenge-badge" style={{ background: '#4CAF50' }}>
-                              ✓ Nagroda odebrana
+                              ✓ Reward Claimed
                             </div>
                           )}
                         </div>
@@ -1930,8 +1930,8 @@ function App() {
           }}>×</button>
           <div className="leaderboard-content">
             <div className="leaderboard-header">
-              <h2>🏆 Ranking</h2>
-              <p className="leaderboard-subtitle">Zobacz najlepszych użytkowników</p>
+              <h2>🏆 Leaderboard</h2>
+              <p className="leaderboard-subtitle">See top users</p>
             </div>
 
             <div className="leaderboard-tabs">
@@ -1939,13 +1939,13 @@ function App() {
                 className={`leaderboard-tab ${leaderboardSortBy === 'trees' ? 'active' : ''}`}
                 onClick={() => setLeaderboardSortBy('trees')}
               >
-                🌳 Drzewka
+                🌳 Trees
               </button>
               <button 
                 className={`leaderboard-tab ${leaderboardSortBy === 'coins' ? 'active' : ''}`}
                 onClick={() => setLeaderboardSortBy('coins')}
               >
-                🌱 Nasionka
+                🌱 Seeds
               </button>
             </div>
 
@@ -1977,7 +1977,7 @@ function App() {
                       <div className="leaderboard-info">
                         <div className="leaderboard-name">
                           {user.name}
-                          {isCurrentUser && <span className="current-badge">Ty</span>}
+                          {isCurrentUser && <span className="current-badge">You</span>}
                         </div>
                         <div className="leaderboard-stats">
                           <span>🌳 {user.trees}</span>
@@ -1992,7 +1992,7 @@ function App() {
                             setLeaderboardOpen(false);
                           }}
                         >
-                          👁️ Obejrzyj
+                          👁️ Spectate
                         </button>
                       )}
                     </div>
@@ -2012,9 +2012,9 @@ function App() {
             <div className="settings-header">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '8px' }}>
                 <span className="icon-settings" style={{ width: '32px', height: '32px' }}></span>
-                <h2 style={{ margin: 0 }}>Konfiguracja</h2>
+                <h2 style={{ margin: 0 }}>Settings</h2>
               </div>
-              <p className="settings-subtitle">Dostosuj aplikację do swoich potrzeb</p>
+              <p className="settings-subtitle">Customize the app to your needs</p>
             </div>
 
             <div className="settings-sections">
@@ -2024,8 +2024,8 @@ function App() {
                 
                 <div className="settings-item">
                   <div className="settings-item-info">
-                    <span className="settings-item-label">Muzyka do intro</span>
-                    <span className="settings-item-description">Wybierz muzykę odtwarzaną przed rozpoczęciem sesji (tylko kupione)</span>
+                    <span className="settings-item-label">Intro Music</span>
+                    <span className="settings-item-description">Select music played before starting session (purchased only)</span>
                   </div>
                   <select 
                     value={introMusic} 
@@ -2045,7 +2045,7 @@ function App() {
                       minWidth: '150px'
                     }}
                   >
-                    <option value="">Brak muzyki</option>
+                    <option value="">No music</option>
                     {getItemsByCategory('music')
                       .filter(item => ownedItems.includes(item.id))
                       .map(item => (
@@ -2054,15 +2054,15 @@ function App() {
                         </option>
                       ))}
                     {getItemsByCategory('music').filter(item => ownedItems.includes(item.id)).length === 0 && (
-                      <option disabled>Brak kupionych muzyk - kup w sklepie</option>
+                      <option disabled>No purchased music - buy in shop</option>
                     )}
                   </select>
                 </div>
 
                 <div className="settings-item">
                   <div className="settings-item-info">
-                    <span className="settings-item-label">Ćwiczenia oddechowe</span>
-                    <span className="settings-item-description">Włącz ćwiczenia oddechowe przed sesją</span>
+                    <span className="settings-item-label">Breathing Exercises</span>
+                    <span className="settings-item-description">Enable breathing exercises before session</span>
                   </div>
                   <label className="toggle-switch">
                     <input 
@@ -2081,8 +2081,8 @@ function App() {
                 {breathingExercises.enabled && (
                   <div className="settings-item">
                     <div className="settings-item-info">
-                      <span className="settings-item-label">Czas trwania ćwiczeń (sekundy)</span>
-                      <span className="settings-item-description">Długość ćwiczeń oddechowych</span>
+                      <span className="settings-item-label">Exercise Duration (seconds)</span>
+                      <span className="settings-item-description">Length of breathing exercises</span>
                     </div>
                     <input 
                       type="number" 
@@ -2112,12 +2112,12 @@ function App() {
 
               {/* Sekcja 2: Sesja */}
               <div className="settings-section">
-                <h3 className="settings-section-title">2. Sesja</h3>
+                <h3 className="settings-section-title">2. Session</h3>
                 
                 <div className="settings-item">
                   <div className="settings-item-info">
-                    <span className="settings-item-label">Domyślny czas trwania (minuty)</span>
-                    <span className="settings-item-description">Standardowy czas trwania sesji</span>
+                    <span className="settings-item-label">Default Duration (minutes)</span>
+                    <span className="settings-item-description">Standard session duration</span>
                   </div>
                   <input 
                     type="number" 
@@ -2145,8 +2145,8 @@ function App() {
 
                 <div className="settings-item">
                   <div className="settings-item-info">
-                    <span className="settings-item-label">Automatyczne rozpoczęcie</span>
-                    <span className="settings-item-description">Sesja rozpoczyna się automatycznie po intro</span>
+                    <span className="settings-item-label">Auto Start</span>
+                    <span className="settings-item-description">Session starts automatically after intro</span>
                   </div>
                   <label className="toggle-switch">
                     <input 
@@ -2164,8 +2164,8 @@ function App() {
 
                 <div className="settings-item">
                   <div className="settings-item-info">
-                    <span className="settings-item-label">Wyświetlaj timer</span>
-                    <span className="settings-item-description">Pokaż timer podczas sesji</span>
+                    <span className="settings-item-label">Show Timer</span>
+                    <span className="settings-item-description">Display timer during session</span>
                   </div>
                   <label className="toggle-switch">
                     <input 
@@ -2184,8 +2184,8 @@ function App() {
                 {/* Muzyka podczas sesji - tylko kupione */}
                 <div className="settings-item">
                   <div className="settings-item-info">
-                    <span className="settings-item-label">Muzyka podczas sesji</span>
-                    <span className="settings-item-description">Wybierz muzykę odtwarzaną podczas sesji (tylko kupione)</span>
+                    <span className="settings-item-label">Music During Session</span>
+                    <span className="settings-item-description">Select music played during session (purchased only)</span>
                   </div>
                   <select 
                     value={activeMusic || ''} 
@@ -2208,7 +2208,7 @@ function App() {
                       minWidth: '150px'
                     }}
                   >
-                    <option value="">Brak muzyki</option>
+                    <option value="">No music</option>
                     {getItemsByCategory('music')
                       .filter(item => ownedItems.includes(item.id))
                       .map(item => (
@@ -2222,8 +2222,8 @@ function App() {
                 {/* Atmosfera podczas sesji - tylko kupione */}
                 <div className="settings-item">
                   <div className="settings-item-info">
-                    <span className="settings-item-label">Atmosfera podczas sesji</span>
-                    <span className="settings-item-description">Wybierz atmosferę odtwarzaną podczas sesji (tylko kupione)</span>
+                    <span className="settings-item-label">Atmosphere During Session</span>
+                    <span className="settings-item-description">Select atmosphere played during session (purchased only)</span>
                   </div>
                   <select 
                     value={activeAtmosphere || ''} 
@@ -2247,7 +2247,7 @@ function App() {
                       minWidth: '150px'
                     }}
                   >
-                    <option value="">Brak atmosfery</option>
+                    <option value="">No atmosphere</option>
                     {getItemsByCategory('atmosphere')
                       .filter(item => ownedItems.find(owned => owned.id === item.id))
                       .map(item => (
@@ -2258,7 +2258,7 @@ function App() {
                   </select>
                   {getItemsByCategory('atmosphere').filter(item => ownedItems.find(owned => owned.id === item.id)).length === 0 && (
                     <span style={{ fontSize: '11px', color: 'rgba(45, 62, 45, 0.6)', fontStyle: 'italic', marginTop: '8px', display: 'block' }}>
-                      Brak kupionych atmosfer - kup w sklepie
+                      No purchased atmospheres - buy in shop
                     </span>
                   )}
                 </div>
@@ -2267,17 +2267,17 @@ function App() {
 
               {/* Sekcja 3: Zablokowane strony */}
               <div className="settings-section">
-                <h3 className="settings-section-title">3. Zablokowane strony</h3>
+                <h3 className="settings-section-title">3. Blocked Websites</h3>
                 
                 <div className="settings-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
                   <div className="settings-item-info" style={{ width: '100%' }}>
-                    <span className="settings-item-label">Dodaj URL do zablokowania</span>
-                    <span className="settings-item-description">Wpisz adres strony, którą chcesz zablokować podczas sesji</span>
+                    <span className="settings-item-label">Add URL to Block</span>
+                    <span className="settings-item-description">Enter the website address you want to block during session</span>
                   </div>
                   <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
                     <input 
                       type="text" 
-                      placeholder="np. facebook.com"
+                      placeholder="e.g. facebook.com"
                       value={newUrl}
                       onChange={(e) => setNewUrl(e.target.value)}
                       onKeyPress={(e) => {
@@ -2310,7 +2310,7 @@ function App() {
                         }
                       }}
                     >
-                      Dodaj
+                      Add
                     </button>
                   </div>
                 </div>
@@ -2318,7 +2318,7 @@ function App() {
                 {blockedUrls.length > 0 && (
                   <div style={{ marginTop: '15px' }}>
                     <div className="settings-item-info" style={{ marginBottom: '10px' }}>
-                      <span className="settings-item-label">Zablokowane URL:</span>
+                      <span className="settings-item-label">Blocked URLs:</span>
                     </div>
                     {blockedUrls.map((url, index) => (
                       <div 
@@ -2338,7 +2338,7 @@ function App() {
                           }}
                           style={{ padding: '6px 12px', fontSize: '11px' }}
                         >
-                          Usuń
+                          Remove
                         </button>
                       </div>
                     ))}
@@ -2389,25 +2389,25 @@ function App() {
                 
                 return (
                   <>
-                    <h3 className="stats-section-title">Statystyki dnia</h3>
+                    <h3 className="stats-section-title">Day Statistics</h3>
                     <div className="stat-item">
-                      <span className="stat-label">Timer sesji (czas trwania)</span>
+                      <span className="stat-label">Session Timer (duration)</span>
                       <span className="stat-value">{dayStats.totalTimeFormatted}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-label">Licznik ukończonych sesji</span>
+                      <span className="stat-label">Completed Sessions Count</span>
                       <span className="stat-value">{dayStats.totalSessions}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-label">Najdłuższa sesja</span>
+                      <span className="stat-label">Longest Session</span>
                       <span className="stat-value">{dayStats.longestFormatted}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-label">Średni czas sesji</span>
+                      <span className="stat-label">Average Session Time</span>
                       <span className="stat-value">{dayStats.averageFormatted}</span>
                     </div>
                     
-                    <h3 className="stats-section-title" style={{ marginTop: '30px' }}>Wykres tygodniowy</h3>
+                    <h3 className="stats-section-title" style={{ marginTop: '30px' }}>Weekly Chart</h3>
                     <div className="chart-container">
                       <div className="chart-bars">
                         {weekData.map((data, index) => (
@@ -2426,7 +2426,7 @@ function App() {
                       </div>
                     </div>
                     
-                    <h3 className="stats-section-title" style={{ marginTop: '30px' }}>Wykres miesięczny</h3>
+                    <h3 className="stats-section-title" style={{ marginTop: '30px' }}>Monthly Chart</h3>
                     <div className="chart-container">
                       <div className="chart-bars monthly">
                         {monthData.map((data, index) => (
@@ -2466,22 +2466,22 @@ function App() {
             </button>
             <div className="session-summary-header">
               <div className="session-summary-icon">🌳</div>
-              <h2>Sesja zakończona!</h2>
-              <p className="session-summary-subtitle">Świetna robota!</p>
+              <h2>Session Completed!</h2>
+              <p className="session-summary-subtitle">Great job!</p>
             </div>
             
             <div className="session-summary-stats">
               <div className="session-summary-stat-card main">
                 <div className="session-summary-stat-icon">⏱️</div>
                 <div className="session-summary-stat-value">{sessionSummaryData.durationFormatted}</div>
-                <div className="session-summary-stat-label">Czas trwania</div>
+                <div className="session-summary-stat-label">Duration</div>
               </div>
               
               {sessionSummaryData.coinsEarned > 0 && (
                 <div className="session-summary-stat-card coins-earned">
                   <div className="session-summary-stat-icon">🌱</div>
                   <div className="session-summary-stat-value">+{sessionSummaryData.coinsEarned}</div>
-                  <div className="session-summary-stat-label">Zdobyte nasionka</div>
+                  <div className="session-summary-stat-label">Seeds Earned</div>
                 </div>
               )}
               
@@ -2489,13 +2489,13 @@ function App() {
                 <div className="session-summary-stat-card">
                   <div className="session-summary-stat-icon">🕐</div>
                   <div className="session-summary-stat-value">{sessionSummaryData.startTime}</div>
-                  <div className="session-summary-stat-label">Rozpoczęcie</div>
+                  <div className="session-summary-stat-label">Start</div>
                 </div>
                 
                 <div className="session-summary-stat-card">
                   <div className="session-summary-stat-icon">🕐</div>
                   <div className="session-summary-stat-value">{sessionSummaryData.endTime}</div>
-                  <div className="session-summary-stat-label">Zakończenie</div>
+                  <div className="session-summary-stat-label">End</div>
                 </div>
               </div>
 
@@ -2503,7 +2503,7 @@ function App() {
               {sessionSummaryData.focusAssessment && (
                 <>
                   <div className="session-summary-section-divider">
-                    <h3 className="session-summary-section-title">Ocena skupienia</h3>
+                    <h3 className="session-summary-section-title">Focus Assessment</h3>
                   </div>
                   <div 
                     className="session-summary-stat-card focus-assessment"
@@ -2548,10 +2548,10 @@ function App() {
                         opacity: 0.8,
                         lineHeight: '1.6'
                       }}>
-                        <div><strong>Wynik ogólny:</strong> {sessionSummaryData.focusAssessment.score}/100</div>
+                        <div><strong>Overall Score:</strong> {sessionSummaryData.focusAssessment.score}/100</div>
                         <div style={{ marginTop: '4px' }}>
-                          <strong>Średni focus:</strong> {sessionSummaryData.focusAssessment.stats.averageScore} | 
-                          <strong> Czas skupienia:</strong> {sessionSummaryData.focusAssessment.stats.positiveTimePercent}%
+                          <strong>Average Focus:</strong> {sessionSummaryData.focusAssessment.stats.averageScore} | 
+                          <strong> Focus Time:</strong> {sessionSummaryData.focusAssessment.stats.positiveTimePercent}%
                         </div>
                       </div>
                     )}
@@ -2572,13 +2572,13 @@ function App() {
                 <div className="session-summary-stat-card">
                   <div className="session-summary-stat-icon">📊</div>
                   <div className="session-summary-stat-value">{sessionSummaryData.totalSessions || 1}</div>
-                  <div className="session-summary-stat-label">Ukończone sesje</div>
+                  <div className="session-summary-stat-label">Completed Sessions</div>
                 </div>
                 
                 <div className="session-summary-stat-card">
                   <div className="session-summary-stat-icon">⏰</div>
                   <div className="session-summary-stat-value">{sessionSummaryData.totalTimeFormatted || '0 min'}</div>
-                  <div className="session-summary-stat-label">Całkowity czas</div>
+                  <div className="session-summary-stat-label">Total Time</div>
                 </div>
               </div>
 
@@ -2592,7 +2592,7 @@ function App() {
                 <div className="session-summary-stat-card">
                   <div className="session-summary-stat-icon">📈</div>
                   <div className="session-summary-stat-value">{sessionSummaryData.averageFormatted || '0 min'}</div>
-                  <div className="session-summary-stat-label">Średni czas</div>
+                  <div className="session-summary-stat-label">Average Time</div>
                 </div>
               </div>
             </div>
@@ -2602,7 +2602,7 @@ function App() {
                 className="session-summary-btn"
                 onClick={() => setShowSessionSummary(false)}
               >
-                Zamknij
+                Close
               </button>
             </div>
           </div>
